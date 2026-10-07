@@ -39,27 +39,105 @@ export default function HomePage() {
   const [applications, setApplications] = useState<ApplicationTrackerItem[]>(initialApplications);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnalyses, setCurrentAnalyses] = useState<{ job: JobListing; analysis: MatchAnalysisResult }[]>([]);
+  const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
+
+  // 1. Load persisted data from localStorage on client mount
+  useEffect(() => {
+    try {
+      const savedCand = localStorage.getItem("jobpilot_candidates");
+      if (savedCand) {
+        const parsed = JSON.parse(savedCand);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCandidates(parsed);
+        }
+      }
+
+      const savedActiveId = localStorage.getItem("jobpilot_active_id");
+      if (savedActiveId) {
+        setActiveCandidateId(savedActiveId);
+      }
+
+      const savedLang = localStorage.getItem("jobpilot_lang") as "ua" | "en" | null;
+      if (savedLang === "ua" || savedLang === "en") {
+        setLang(savedLang);
+      }
+
+      const savedAnalyses = localStorage.getItem("jobpilot_analyses");
+      if (savedAnalyses) {
+        const parsed = JSON.parse(savedAnalyses);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCurrentAnalyses(parsed);
+        }
+      }
+
+      const savedApps = localStorage.getItem("jobpilot_applications");
+      if (savedApps) {
+        const parsed = JSON.parse(savedApps);
+        if (Array.isArray(parsed)) {
+          setApplications(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load from localStorage:", e);
+    } finally {
+      setHasLoadedStorage(true);
+    }
+  }, []);
+
+  // 2. Persist state changes into localStorage
+  useEffect(() => {
+    if (!hasLoadedStorage) return;
+    try {
+      localStorage.setItem("jobpilot_candidates", JSON.stringify(candidates));
+    } catch (e) {}
+  }, [candidates, hasLoadedStorage]);
+
+  useEffect(() => {
+    if (!hasLoadedStorage) return;
+    try {
+      localStorage.setItem("jobpilot_active_id", activeCandidateId);
+    } catch (e) {}
+  }, [activeCandidateId, hasLoadedStorage]);
+
+  useEffect(() => {
+    if (!hasLoadedStorage) return;
+    try {
+      localStorage.setItem("jobpilot_lang", lang);
+    } catch (e) {}
+  }, [lang, hasLoadedStorage]);
+
+  useEffect(() => {
+    if (!hasLoadedStorage) return;
+    try {
+      localStorage.setItem("jobpilot_analyses", JSON.stringify(currentAnalyses));
+    } catch (e) {}
+  }, [currentAnalyses, hasLoadedStorage]);
+
+  useEffect(() => {
+    if (!hasLoadedStorage) return;
+    try {
+      localStorage.setItem("jobpilot_applications", JSON.stringify(applications));
+    } catch (e) {}
+  }, [applications, hasLoadedStorage]);
 
   const activeCandidate = candidates.find((c) => c.id === activeCandidateId) || candidates[0];
 
-  // Recalculate match analyses when candidate changes
+  // 3. Fallback demo analyses ONLY if first time ever and nothing in storage
   useEffect(() => {
-    let isMounted = true;
-    async function recalculate() {
-      if (!activeCandidate) return;
-      const results = await Promise.all(
+    if (!hasLoadedStorage) return;
+    if (currentAnalyses.length === 0 && activeCandidate) {
+      let isMounted = true;
+      Promise.all(
         sampleJobs.map(async (job) => {
           const analysis = await analyzeJobMatch(activeCandidate, job);
           return { job, analysis };
         })
-      );
-      if (isMounted) {
-        setCurrentAnalyses(results);
-      }
+      ).then((results) => {
+        if (isMounted) setCurrentAnalyses(results);
+      });
+      return () => { isMounted = false; };
     }
-    recalculate();
-    return () => { isMounted = false; };
-  }, [activeCandidateId, candidates]);
+  }, [hasLoadedStorage]);
 
   const handleSelectCandidate = (id: string) => {
     setActiveCandidateId(id);

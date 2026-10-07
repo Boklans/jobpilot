@@ -66,13 +66,19 @@ export async function POST(req: NextRequest) {
         if (response.ok) {
           const html = await response.text();
 
-          // Extract meta title & h1
+          // 1. Meta / OpenGraph fallback
+          const ogTitle = html.match(/<meta\s+(?:property|name)=["']og:title["']\s+content=["'](.*?)["']/i);
+          if (ogTitle && ogTitle[1]) {
+            urlTitle = ogTitle[1].replace(/<[^>]+>/g, "").trim();
+          }
+
+          // 2. Exact H1 tag
           const h1Match = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
           if (h1Match) {
             urlTitle = h1Match[1].replace(/<[^>]+>/g, "").trim();
           }
 
-          // DOU company extract
+          // 3. DOU company extract
           if (trimmedInput.includes("dou.ua")) {
             const compMatch = html.match(/<div class="l-n">[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i) ||
                               html.match(/<a class="company"[^>]*>([\s\S]*?)<\/a>/i);
@@ -81,39 +87,57 @@ export async function POST(req: NextRequest) {
             }
           }
 
+          // 4. Djinni company extract
+          if (trimmedInput.includes("djinni.co")) {
+            const compMatch = html.match(/<a class="job-details--title"[^>]*>([\s\S]*?)<\/a>/i) ||
+                              html.match(/<div class="job-list-item__job-info">[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i);
+            if (compMatch) {
+              urlCompany = compMatch[1].replace(/<[^>]+>/g, "").trim();
+            }
+          }
+
           pageText = cleanHtmlToText(html);
-        } else {
-          console.warn("Failed to fetch vacancy URL:", response.status);
+
+          // If we successfully fetched the vacancy page and have an exact title from the site,
+          // return IMMEDIATELY with ultra-fast response (<0.5s)!
+          if (urlTitle && pageText.length > 50) {
+            const job: JobListing = {
+              id: "job-" + Date.now(),
+              title: urlTitle,
+              company: urlCompany || (trimmedInput.includes("dou.ua") ? "DOU Employer" : "Tech Company"),
+              location: "Remote / Hybrid",
+              sourceUrl: trimmedInput,
+              rawDescription: pageText,
+              createdAt: new Date().toISOString(),
+            };
+            return NextResponse.json({ success: true, job });
+          }
         }
       } catch (fetchErr) {
         console.warn("Error fetching vacancy URL:", fetchErr);
       }
     }
 
-    // Try AI extraction of structured job metadata
+    // Fallback AI extraction for raw text or difficult URLs
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey && pageText.length > 50) {
-      const prompt = `You are a Tech Job Parser. Analyze this job vacancy text and extract key metadata into strict JSON format:
+      const prompt = `You are a Tech Job Parser. Analyze this job text and extract title & company into strict JSON format:
 {
-  "title": string (Job title, e.g. "Senior .NET Software Engineer"),
-  "company": string (Company name, e.g. "Lime Systems" or "Murano Software"),
-  "location": string (e.g. "Remote", "Kyiv, Ukraine", "Hybrid"),
-  "salary": string or null (e.g. "$4,000 - $5,500" if mentioned, else null),
-  "summary": string (2-3 sentences overview of the role and project),
-  "keyRequirements": string[] (Array of key required skills, stack, experience)
+  "title": string (e.g. "React.js Developer"),
+  "company": string (e.g. "Interactive Online Technologies"),
+  "location": string (e.g. "Remote / Hybrid")
 }
 
-Job text (truncated):
-${pageText.slice(0, 6000)}`;
+Job text (first 3000 chars):
+${pageText.slice(0, 3000)}`;
 
       const parsed = await callGeminiJson<any>(prompt, geminiKey);
       if (parsed && parsed.title) {
         const job: JobListing = {
           id: "job-" + Date.now(),
-          title: parsed.title || urlTitle || "Software Engineer",
-          company: parsed.company || urlCompany || (isUrl ? "Tech Company" : "Company"),
+          title: urlTitle || parsed.title || "Software Engineer",
+          company: urlCompany || parsed.company || "Tech Company",
           location: parsed.location || "Remote / Hybrid",
-          salary: parsed.salary || undefined,
           sourceUrl: isUrl ? trimmedInput : undefined,
           rawDescription: pageText.length > 100 ? pageText : trimmedInput,
           createdAt: new Date().toISOString(),
@@ -123,10 +147,10 @@ ${pageText.slice(0, 6000)}`;
       }
     }
 
-    // Fallback heuristic extraction
+    // Heuristic fallback
     const lines = pageText.split("\n").map(l => l.trim()).filter(Boolean);
     const guessedTitle = urlTitle || lines[0]?.slice(0, 60) || "Software Engineer";
-    const guessedCompany = urlCompany || (isUrl && trimmedInput.includes("lime-systems") ? "Lime Systems" : isUrl && trimmedInput.includes("murano-software") ? "Murano Software" : "Tech Company");
+    const guessedCompany = urlCompany || "Tech Company";
 
     const job: JobListing = {
       id: "job-" + Date.now(),
@@ -144,3 +168,4 @@ ${pageText.slice(0, 6000)}`;
     return NextResponse.json({ error: error.message || "Помилка обробки вакансії" }, { status: 500 });
   }
 }
+

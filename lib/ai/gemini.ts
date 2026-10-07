@@ -3,8 +3,8 @@
  */
 
 const GEMINI_MODELS = [
-  "gemini-3.5-flash",
   "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
   "gemini-2.5-flash",
 ];
 
@@ -25,6 +25,7 @@ export async function callGeminiJson<T = any>(prompt: string, apiKey?: string): 
             temperature: 0.2,
           },
         }),
+        signal: AbortSignal.timeout(7000),
       });
 
       if (!response.ok) {

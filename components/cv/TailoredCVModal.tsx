@@ -26,7 +26,141 @@ export function TailoredCVModal({
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    window.print();
+    const isEn = lang === "en";
+    const printWindow = window.open("", "_blank", "width=850,height=1100");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="utf-8" />
+  <title>${candidate.fullName} — Resume</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 15mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+      line-height: 1.45;
+      font-size: 10pt;
+    }
+    h1 {
+      font-size: 22pt;
+      margin: 0 0 2pt 0;
+      color: #0f172a;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1d4ed8;
+      margin: 0;
+    }
+    .meta {
+      font-size: 9pt;
+      color: #64748b;
+      text-align: right;
+    }
+    .header-bar {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8pt;
+      margin-bottom: 12pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    h2 {
+      font-size: 10pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 3pt;
+      margin-top: 12pt;
+      margin-bottom: 6pt;
+      color: #1e293b;
+    }
+    p { margin: 0 0 6pt 0; text-align: justify; }
+    .skills-wrap { display: flex; flex-wrap: wrap; gap: 4pt; margin-bottom: 8pt; }
+    .skill-pill {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 2pt 6pt;
+      border-radius: 3pt;
+      font-size: 8.5pt;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .exp-item { margin-bottom: 10pt; page-break-inside: avoid; break-inside: avoid; }
+    .exp-header { font-weight: 700; font-size: 10pt; color: #0f172a; }
+    .exp-company { font-weight: 400; color: #64748b; }
+    ul { margin: 4pt 0 6pt 0; padding-left: 16pt; }
+    li { margin-bottom: 3pt; font-size: 9.5pt; color: #334155; }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <div>
+      <h1>${candidate.fullName}</h1>
+      <div class="subtitle">${candidate.title}</div>
+    </div>
+    <div class="meta">
+      <div><strong>${candidate.yearsOfExperience}+ ${isEn ? "years of experience" : "років досвіду"}</strong></div>
+      <div>Ukraine · Available Immediately</div>
+    </div>
+  </div>
+
+  <h2>${isEn ? "Professional Summary" : "Професійний підсумок"}</h2>
+  <p>${tailoredCV.tailoredSummary}</p>
+
+  <h2>${isEn ? "Technical Skills & Competencies" : "Технічні навички"}</h2>
+  <div class="skills-wrap">
+    ${tailoredCV.highlightedSkills.map((s) => `<span class="skill-pill">${s}</span>`).join("")}
+  </div>
+
+  <h2>${isEn ? "Professional Experience" : "Досвід роботи"}</h2>
+  ${tailoredCV.optimizedExperiences
+    .map(
+      (exp) => `
+    <div class="exp-item">
+      <div class="exp-header">${exp.position} <span class="exp-company">| ${exp.company}</span></div>
+      <ul>
+        ${exp.bullets.map((b) => `<li>${b}</li>`).join("")}
+      </ul>
+    </div>
+  `
+    )
+    .join("")}
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.focus();
+        window.print();
+        setTimeout(function() { window.close(); }, 500);
+      }, 250);
+    };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   // Plain text representation for 1-click clipboard copy
