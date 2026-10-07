@@ -120,7 +120,7 @@ ${rawText.slice(0, 8000)}`;
   // 1. Try Google Gemini Flash if configured
   if (geminiKey) {
     try {
-      const parsed = await callGeminiJson<any>(prompt, geminiKey);
+      const parsed = await callGeminiJson<any>(prompt, geminiKey, 28000);
       if (parsed) {
         return {
           id: "cv-" + Date.now(),
@@ -202,17 +202,28 @@ ${rawText.slice(0, 8000)}`;
   candidateName = candidateName.replace(/[_-]/g, " ").trim();
 
   const techCatalog = [
+    // .NET & Microsoft ecosystem
+    "C#", ".NET", ".NET 8", ".NET 7", ".NET 6", ".NET Core", "ASP.NET", "ASP.NET Core", 
+    "Entity Framework", "EF Core", "LINQ", "Dapper", "WPF", "WinForms", "WCF", 
+    "MS SQL Server", "MS SQL", "T-SQL", "Azure", "Azure DevOps", "NuGet",
+    // JavaScript & Web
     "JavaScript", "TypeScript", "React", "React Native", "Next.js", "Node.js", 
-    "Express", "NestJS", "Python", "Django", "FastAPI", "Go", "Golang", 
-    "Java", "Kotlin", "Swift", "Flutter", "PHP", "Laravel", "PostgreSQL", 
-    "MySQL", "MongoDB", "Redis", "GraphQL", "REST APIs", "AWS", "GCP", 
-    "Docker", "Kubernetes", "Git", "CI/CD", "Tailwind CSS", "Redux", "Zustand", 
-    "Jest", "Cypress", "HTML", "CSS", "Expo", "Linux", "Microservices", "Vue.js", "Angular"
+    "Express", "NestJS", "Vue.js", "Angular", "Redux", "Zustand", "Tailwind CSS", "HTML", "CSS", "Expo",
+    // Backend & Languages
+    "Python", "Django", "FastAPI", "Go", "Golang", "Java", "Kotlin", "Swift", "Flutter", "PHP", "Laravel",
+    // Databases & Messaging
+    "PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch", "RabbitMQ", "Kafka",
+    // DevOps & Tools
+    "Docker", "Kubernetes", "AWS", "GCP", "Git", "GitHub Actions", "CI/CD", "Linux",
+    // Architecture & Principles
+    "Microservices", "REST APIs", "REST", "GraphQL", "Clean Architecture", "SOLID", "Design Patterns", 
+    "OOP", "xUnit", "NUnit", "Jest", "Unit Tests"
   ];
 
-  const detectedSkills = techCatalog.filter(tech => 
-    new RegExp(`\\b${tech.replace(".", "\\.")}\\b`, "i").test(rawText)
-  );
+  const detectedSkills = techCatalog.filter(tech => {
+    const escaped = tech.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?:^|[^a-zA-Z0-9#+])${escaped}(?:$|[^a-zA-Z0-9#+])`, "i").test(rawText);
+  });
 
   let estimatedYears = 4;
   const yearMatch = rawText.match(/(\d+)\+?\s*(?:years|років|года|yrs)/i);
@@ -221,27 +232,38 @@ ${rawText.slice(0, 8000)}`;
   }
 
   const titleKeywords = [
-    "Full-Stack Developer", "Frontend Developer", "Backend Developer", 
+    "Senior .NET Developer", ".NET Software Engineer", ".NET Developer", "C# Developer",
+    "Lead Backend Developer", "Full-Stack Developer", "Frontend Developer", "Backend Developer", 
     "React Native Developer", "Mobile Engineer", "DevOps Engineer", 
-    "QA Automation", "Software Engineer", "Lead Developer", "Solution Architect"
+    "Software Engineer", "Lead Developer", "Solution Architect"
   ];
-  const detectedTitle = titleKeywords.find(t => new RegExp(t, "i").test(rawText)) || "Senior Software Engineer";
+  const detectedTitle = titleKeywords.find(t => new RegExp(t, "i").test(rawText)) || "Software Engineer";
+
+  // Extract real bullet points from raw text (lines starting with •, -, *, or numbered)
+  const extractedBullets = lines
+    .filter(l => /^[\u2022\u2023\u25E6\u2043\u2219\-\*]\s+/.test(l) || /^\d+\.\s+/.test(l))
+    .map(l => l.replace(/^[\u2022\u2023\u25E6\u2043\u2219\-\*]\s+/, "").replace(/^\d+\.\s+/, "").trim())
+    .filter(l => l.length > 25);
+
+  const fallbackBullets = extractedBullets.length > 0 
+    ? extractedBullets.slice(0, 5) 
+    : lines.filter(l => l.length > 40 && !l.includes("@") && !l.includes("http")).slice(0, 4);
 
   return {
     id: "parsed-" + Date.now(),
     fullName: candidateName,
     title: detectedTitle,
-    summary: lines.slice(1, 4).join(" ").slice(0, 300) || `Професійний ${detectedTitle} з комерційним досвідом.`,
+    summary: lines.slice(1, 4).filter(l => l.length > 30).join(" ").slice(0, 350) || `Досвідчений ${detectedTitle} з ${estimatedYears}+ роками комерційного досвіду.`,
     yearsOfExperience: estimatedYears,
-    skills: detectedSkills.length > 0 ? detectedSkills : ["TypeScript", "React", "Node.js", "Git"],
+    skills: detectedSkills.length > 0 ? detectedSkills : ["C#", ".NET", "ASP.NET Core", "MS SQL", "Docker", "Git"],
     experiences: [
       {
         id: "exp-auto-1",
-        company: "Commercial Experience",
+        company: "Commercial Software Development",
         position: detectedTitle,
         period: "2021 - Present",
-        description: lines.slice(3, 7).filter(l => l.length > 20).slice(0, 3),
-        technologies: detectedSkills.slice(0, 5)
+        description: fallbackBullets.length > 0 ? fallbackBullets : ["Розробка та підтримка комерційних проектів", "Оптимізація продуктивності систем"],
+        technologies: detectedSkills.slice(0, 6)
       }
     ],
     rawText,

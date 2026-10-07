@@ -4,11 +4,15 @@
 
 const GEMINI_MODELS = [
   "gemini-3.5-flash-lite",
+  "gemini-flash-latest",
   "gemini-3.5-flash",
-  "gemini-2.5-flash",
 ];
 
-export async function callGeminiJson<T = any>(prompt: string, apiKey?: string): Promise<T | null> {
+export async function callGeminiJson<T = any>(
+  prompt: string, 
+  apiKey?: string,
+  timeoutMs: number = 25000
+): Promise<T | null> {
   const key = apiKey || process.env.GEMINI_API_KEY;
   if (!key) return null;
 
@@ -25,7 +29,7 @@ export async function callGeminiJson<T = any>(prompt: string, apiKey?: string): 
             temperature: 0.2,
           },
         }),
-        signal: AbortSignal.timeout(7000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (!response.ok) {
