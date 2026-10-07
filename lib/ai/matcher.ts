@@ -1,4 +1,5 @@
 import { CandidateProfile, JobListing, MatchAnalysisResult, TailoredCVResult, CoverLetterResult } from "@/types";
+import { callGeminiJson } from "@/lib/ai/gemini";
 
 /**
  * Intelligent Match Analyzer
@@ -88,35 +89,21 @@ Return strict JSON:
   // Try Gemini
   if (geminiKey) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `${prompt}\n\nRespond strictly with valid JSON only.` }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawContent) {
-          const parsed = JSON.parse(rawContent);
-          return {
-            jobId: job.id,
-            profileId: profile.id,
-            score: parsed.score || 80,
-            recommendation: parsed.recommendation || "good_match",
-            summary: parsed.summary || "",
-            strengths: parsed.strengths || [],
-            missingSkills: parsed.missingSkills || [],
-            experienceGaps: parsed.experienceGaps || [],
-            tailoringTips: parsed.tailoringTips || [],
-            interviewTips: parsed.interviewTips || [],
-            calculatedAt: new Date().toISOString(),
-          };
-        }
+      const parsed = await callGeminiJson<any>(prompt, geminiKey);
+      if (parsed) {
+        return {
+          jobId: job.id,
+          profileId: profile.id,
+          score: parsed.score || 80,
+          recommendation: parsed.recommendation || "good_match",
+          summary: parsed.summary || "",
+          strengths: parsed.strengths || [],
+          missingSkills: parsed.missingSkills || [],
+          experienceGaps: parsed.experienceGaps || [],
+          tailoringTips: parsed.tailoringTips || [],
+          interviewTips: parsed.interviewTips || [],
+          calculatedAt: new Date().toISOString(),
+        };
       }
     } catch (geminiErr) {
       console.warn("Gemini API call failed, trying fallback:", geminiErr);
@@ -233,7 +220,43 @@ export async function generateTailoredCV(
         };
       }
     } catch (err) {
-      console.warn("Tailored CV LLM generation failed, using fallback:", err);
+      console.warn("Tailored CV OpenAI generation failed, trying Gemini:", err);
+    }
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    try {
+      const tailorPrompt = `You are an elite Executive Tech Resume Tailor. Tailor the candidate's existing experience to match the target job description. Never invent fake companies or skills. Return strict JSON:
+{
+  "tailoredSummary": string,
+  "highlightedSkills": string[],
+  "optimizedExperiences": [
+    {
+      "company": string,
+      "position": string,
+      "bullets": string[]
+    }
+  ],
+  "atsKeywordsAdded": string[]
+}
+
+Candidate: ${JSON.stringify(profile)}
+Job: ${JSON.stringify(job)}
+Analysis: ${JSON.stringify(analysis)}`;
+
+      const parsed = await callGeminiJson<any>(tailorPrompt, geminiKey);
+      if (parsed && parsed.tailoredSummary) {
+        return {
+          jobId: job.id,
+          tailoredSummary: parsed.tailoredSummary,
+          highlightedSkills: parsed.highlightedSkills || [],
+          optimizedExperiences: parsed.optimizedExperiences || [],
+          atsKeywordsAdded: parsed.atsKeywordsAdded || [],
+        };
+      }
+    } catch (err) {
+      console.warn("Tailored CV Gemini generation failed, using fallback:", err);
     }
   }
 
@@ -302,7 +325,27 @@ export async function generateCoverLetter(
         };
       }
     } catch (err) {
-      console.warn("Cover Letter LLM generation failed, using fallback:", err);
+      console.warn("Cover Letter OpenAI generation failed, trying Gemini:", err);
+    }
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    try {
+      const letterPrompt = `Write a compelling, concise and punchy tech cover letter in Ukrainian (or the language of the job) for this candidate applying to this job. Avoid clichés. Return strict JSON with fields "subjectLine" and "content".
+Candidate: ${JSON.stringify(profile)}
+Job: ${JSON.stringify(job)}`;
+
+      const parsed = await callGeminiJson<any>(letterPrompt, geminiKey);
+      if (parsed && parsed.subjectLine && parsed.content) {
+        return {
+          jobId: job.id,
+          subjectLine: parsed.subjectLine,
+          content: parsed.content,
+        };
+      }
+    } catch (err) {
+      console.warn("Cover Letter Gemini generation failed, using fallback:", err);
     }
   }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CandidateProfile } from "@/types";
+import { callGeminiJson } from "@/lib/ai/gemini";
 
 export const maxDuration = 30;
 
@@ -119,39 +120,25 @@ ${rawText.slice(0, 8000)}`;
   // 1. Try Google Gemini Flash if configured
   if (geminiKey) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `${prompt}\n\nRespond strictly with valid JSON only.` }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawContent) {
-          const parsed = JSON.parse(rawContent);
-          return {
-            id: "cv-" + Date.now(),
-            fullName: parsed.fullName || fileName.replace(/\.[^/.]+$/, ""),
-            title: parsed.title || "Software Engineer",
-            summary: parsed.summary || "",
-            yearsOfExperience: parsed.yearsOfExperience || 3,
-            skills: parsed.skills || [],
-            experiences: (parsed.experiences || []).map((exp: any, idx: number) => ({
-              id: exp.id || `exp-${idx}`,
-              company: exp.company || "Company",
-              position: exp.position || "Developer",
-              period: exp.period || "2022 - Present",
-              description: Array.isArray(exp.description) ? exp.description : [String(exp.description || "")],
-              technologies: Array.isArray(exp.technologies) ? exp.technologies : []
-            })),
-            rawText,
-          };
-        }
+      const parsed = await callGeminiJson<any>(prompt, geminiKey);
+      if (parsed) {
+        return {
+          id: "cv-" + Date.now(),
+          fullName: parsed.fullName || fileName.replace(/\.[^/.]+$/, ""),
+          title: parsed.title || "Software Engineer",
+          summary: parsed.summary || "",
+          yearsOfExperience: parsed.yearsOfExperience || 3,
+          skills: parsed.skills || [],
+          experiences: (parsed.experiences || []).map((exp: any, idx: number) => ({
+            id: exp.id || `exp-${idx}`,
+            company: exp.company || "Company",
+            position: exp.position || "Developer",
+            period: exp.period || "2022 - Present",
+            description: Array.isArray(exp.description) ? exp.description : [String(exp.description || "")],
+            technologies: Array.isArray(exp.technologies) ? exp.technologies : []
+          })),
+          rawText,
+        };
       }
     } catch (gemErr) {
       console.warn("Gemini resume parsing failed, trying OpenAI or fallback:", gemErr);
