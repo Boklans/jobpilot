@@ -33,6 +33,7 @@ import {
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [lang, setLang] = useState<"ua" | "en">("ua");
   const [candidates, setCandidates] = useState<CandidateProfile[]>(sampleCandidateProfiles);
   const [activeCandidateId, setActiveCandidateId] = useState<string>(sampleCandidateProfiles[0].id);
   const [applications, setApplications] = useState<ApplicationTrackerItem[]>(initialApplications);
@@ -97,6 +98,10 @@ export default function HomePage() {
     }
   };
 
+  const handleDeleteAnalysis = (jobId: string) => {
+    setCurrentAnalyses((prev) => prev.filter((item) => item.job.id !== jobId));
+  };
+
   const handleAddToTracker = (job: JobListing, score: number) => {
     const exists = applications.some((app) => app.job.id === job.id);
     if (!exists) {
@@ -128,6 +133,8 @@ export default function HomePage() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activeCandidate={activeCandidate}
+        lang={lang}
+        setLang={setLang}
       />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
@@ -333,7 +340,11 @@ export default function HomePage() {
             <AddJobForm onAnalyze={handleAnalyzeNewJob} isLoading={isAnalyzing} />
 
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-slate-900">Аналіз вакансій</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900">
+                  {lang === "en" ? "Analyzed Vacancies" : "Аналіз вакансій"} ({currentAnalyses.length})
+                </h3>
+              </div>
               {currentAnalyses.map(({ job, analysis }) => (
                 <MatchAnalysisCard
                   key={job.id}
@@ -341,6 +352,7 @@ export default function HomePage() {
                   analysis={analysis}
                   candidate={activeCandidate}
                   onAddToTracker={handleAddToTracker}
+                  onDeleteJob={handleDeleteAnalysis}
                 />
               ))}
             </div>

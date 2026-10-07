@@ -168,66 +168,21 @@ Return strict JSON:
 export async function generateTailoredCV(
   profile: CandidateProfile,
   job: JobListing,
-  analysis: MatchAnalysisResult
+  analysis: MatchAnalysisResult,
+  language: "ua" | "en" = "en"
 ): Promise<TailoredCVResult> {
-  const openaiKey = process.env.OPENAI_API_KEY;
-
-  if (openaiKey) {
-    try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          response_format: { type: "json_object" },
-          messages: [
-            {
-              role: "system",
-              content: `You are an elite Executive Tech Resume Tailor. Tailor the candidate's existing experience to match the target job description. Never invent fake companies or skills. Return strict JSON:
-{
-  "tailoredSummary": string,
-  "highlightedSkills": string[],
-  "optimizedExperiences": [
-    {
-      "company": string,
-      "position": string,
-      "bullets": string[]
-    }
-  ],
-  "atsKeywordsAdded": string[]
-}`,
-            },
-            {
-              role: "user",
-              content: JSON.stringify({ candidate: profile, job, analysis }),
-            },
-          ],
-        }),
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        const parsed = JSON.parse(json.choices[0].message.content);
-        return {
-          jobId: job.id,
-          tailoredSummary: parsed.tailoredSummary,
-          highlightedSkills: parsed.highlightedSkills,
-          optimizedExperiences: parsed.optimizedExperiences,
-          atsKeywordsAdded: parsed.atsKeywordsAdded || [],
-        };
-      }
-    } catch (err) {
-      console.warn("Tailored CV OpenAI generation failed, trying Gemini:", err);
-    }
-  }
-
   const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    try {
-      const tailorPrompt = `You are an elite Executive Tech Resume Tailor. Tailor the candidate's existing experience to match the target job description. Never invent fake companies or skills. Return strict JSON:
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const isEn = language === "en";
+
+  const tailorPrompt = `You are an elite Executive Tech Resume Tailor. Tailor the candidate's existing experience to match the target job description. Never invent fake companies or skills.
+LANGUAGE: Write strictly in ${isEn ? "English" : "Ukrainian"}.
+CRITICAL RULES FOR HR-READY RESUME:
+1. NEVER include meta-labels such as "[ATS-Optimized]", "Targeted for", "з акцентом на вимоги", or the hiring company's name (${job.company}) inside past job bullets or summary! This resume is submitted directly to the HR and hiring managers of ${job.company} and MUST read as an authentic, natural, high-impact professional resume.
+2. Emphasize actual engineering achievements, architecture, scale, and relevant stack (${profile.skills.slice(0, 8).join(", ")}).
+3. Keep bullets action-driven with strong verbs.
+
+Return strict JSON:
 {
   "tailoredSummary": string,
   "highlightedSkills": string[],
@@ -245,13 +200,21 @@ Candidate: ${JSON.stringify(profile)}
 Job: ${JSON.stringify(job)}
 Analysis: ${JSON.stringify(analysis)}`;
 
+  if (geminiKey) {
+    try {
       const parsed = await callGeminiJson<any>(tailorPrompt, geminiKey);
       if (parsed && parsed.tailoredSummary) {
         return {
           jobId: job.id,
           tailoredSummary: parsed.tailoredSummary,
           highlightedSkills: parsed.highlightedSkills || [],
-          optimizedExperiences: parsed.optimizedExperiences || [],
+          optimizedExperiences: (parsed.optimizedExperiences || []).map((exp: any) => ({
+            company: exp.company,
+            position: exp.position,
+            bullets: (exp.bullets || []).map((b: string) =>
+              b.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim()
+            )
+          })),
           atsKeywordsAdded: parsed.atsKeywordsAdded || [],
         };
       }
@@ -262,80 +225,46 @@ Analysis: ${JSON.stringify(analysis)}`;
 
   return {
     jobId: job.id,
-    tailoredSummary: `Досвідчений ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду, що спеціалізується на масштабованих рішеннях. Сфокусований на надійній архітектурі, чистій кодовій базі та реалізації вимог для компанії ${job.company}.`,
+    tailoredSummary: isEn
+      ? `Accomplished ${profile.title} with ${profile.yearsOfExperience}+ years of production experience building high-scale distributed systems. Focused on resilient architecture, clean code practices, and high-throughput backend services.`
+      : `Досвідчений ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду в розробці високонавантажених сервісів. Сфокусований на надійній архітектурі, чистій кодовій базі та високій продуктивності систем.`,
     highlightedSkills: [
       ...new Set([
         ...profile.skills,
         ...analysis.strengths.map((s) => s.replace("Підтверджений досвід: ", "")),
       ]),
     ].slice(0, 10),
-    optimizedExperiences: profile.experiences.map((exp, idx) => ({
+    optimizedExperiences: profile.experiences.map((exp) => ({
       company: exp.company,
       position: exp.position,
       bullets: exp.description.map((bullet) =>
-        idx === 0
-          ? `[ATS-Optimized] ${bullet} з акцентом на вимоги ${job.company}`
-          : bullet
+        bullet.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim()
       ),
     })),
     atsKeywordsAdded:
       analysis.missingSkills.length > 0
         ? analysis.missingSkills.slice(0, 3)
-        : ["Optimization", "Scalability", "Clean Architecture"],
+        : ["Clean Architecture", "Performance Optimization", "High Scalability"],
   };
 }
 
 export async function generateCoverLetter(
   profile: CandidateProfile,
-  job: JobListing
+  job: JobListing,
+  language: "ua" | "en" = "en"
 ): Promise<CoverLetterResult> {
-  const openaiKey = process.env.OPENAI_API_KEY;
-
-  if (openaiKey) {
-    try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          response_format: { type: "json_object" },
-          messages: [
-            {
-              role: "system",
-              content: `Write a compelling, concise and punchy tech cover letter for this candidate applying to this job. Avoid clichés. Return JSON with fields "subjectLine" and "content".`,
-            },
-            {
-              role: "user",
-              content: JSON.stringify({ candidate: profile, job }),
-            },
-          ],
-        }),
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        const parsed = JSON.parse(json.choices[0].message.content);
-        return {
-          jobId: job.id,
-          subjectLine: parsed.subjectLine,
-          content: parsed.content,
-        };
-      }
-    } catch (err) {
-      console.warn("Cover Letter OpenAI generation failed, trying Gemini:", err);
-    }
-  }
-
   const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    try {
-      const letterPrompt = `Write a compelling, concise and punchy tech cover letter in Ukrainian (or the language of the job) for this candidate applying to this job. Avoid clichés. Return strict JSON with fields "subjectLine" and "content".
+  const isEn = language === "en";
+
+  const letterPrompt = `Write a compelling, concise and punchy tech cover letter for this candidate applying to this job.
+LANGUAGE: Write strictly in ${isEn ? "English" : "Ukrainian"}.
+Tone: Professional, direct, confident, and free of clichés.
+Return strict JSON with fields "subjectLine" and "content".
 Candidate: ${JSON.stringify(profile)}
 Job: ${JSON.stringify(job)}`;
 
+  if (geminiKey) {
+    try {
       const parsed = await callGeminiJson<any>(letterPrompt, geminiKey);
       if (parsed && parsed.subjectLine && parsed.content) {
         return {
@@ -349,23 +278,35 @@ Job: ${JSON.stringify(job)}`;
     }
   }
 
-  const subjectLine = `Application for ${job.title} — ${profile.fullName}`;
-  const content = `Шановна команда ${job.company},
+  if (isEn) {
+    return {
+      jobId: job.id,
+      subjectLine: `Application for ${job.title} — ${profile.fullName}`,
+      content: `Dear Hiring Team at ${job.company},
 
-Пишу, щоб висловити зацікавленість у позиції ${job.title}.
+I am writing to express my strong interest in the ${job.title} position.
 
-Мій практичний досвід (${profile.yearsOfExperience}+ років у сфері ${profile.title}) та стек технологій (${profile.skills.slice(0, 4).join(", ")}) безпосередньо відповідають викликам, описаним у вашій вакансії.
+With ${profile.yearsOfExperience}+ years of commercial experience as a ${profile.title} and strong expertise across ${profile.skills.slice(0, 5).join(", ")}, my technical background closely aligns with the requirements of this role.
 
-Протягом своєї кар'єри я фокусувався на розробці надійних, масштабованих продуктів та підвищенні швидкодії систем. Мене особливо надихає підхід ${job.company} до побудови рішень, і я готовий принести цінність команді з перших тижнів.
+Throughout my career, I have focused on designing robust, high-scale solutions and improving system performance. I would welcome the opportunity to discuss how my skill set can support ${job.company}'s current goals.
 
-Буду радий коротко поспілкуватися на інтерв'ю та обговорити, як мої навички допоможуть досягти ваших поточних цілей.
-
-З повагою,
-${profile.fullName}`;
+Best regards,
+${profile.fullName}`,
+    };
+  }
 
   return {
     jobId: job.id,
-    subjectLine,
-    content,
+    subjectLine: `Відгук на вакансію ${job.title} — ${profile.fullName}`,
+    content: `Шановна команда ${job.company},
+
+Пишу, щоб висловити зацікавленість у позиції ${job.title}.
+
+Мій практичний досвід (${profile.yearsOfExperience}+ років у сфері ${profile.title}) та стек технологій (${profile.skills.slice(0, 5).join(", ")}) безпосередньо відповідають викликам, описаним у вашій вакансії.
+
+Протягом своєї кар'єри я фокусувався на розробці надійних, масштабованих продуктів та оптимізації швидкодії систем. Буду радий обговорити на інтерв'ю, як мій практичний досвід допоможе реалізувати поточні цілі команди ${job.company}.
+
+З повагою,
+${profile.fullName}`,
   };
 }

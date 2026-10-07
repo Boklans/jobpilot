@@ -25,13 +25,46 @@ body {
 }
 
 @media print {
-  body {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
   }
-  header, nav, button {
+
+  /* Hide navbar, headers, buttons, cards that are not the cv printable area */
+  nav, header, footer, button, .print\:hidden {
     display: none !important;
   }
+
+  /* Make modal overlay transparent and static */
+  .cv-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .cv-modal-card {
+    position: static !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
   #cv-printable-area {
     margin: 0 !important;
     padding: 0 !important;
@@ -39,5 +72,17 @@ body {
     box-shadow: none !important;
     width: 100% !important;
     max-width: 100% !important;
+    background: #ffffff !important;
+  }
+
+  /* Prevent ugly mid-block page breaks */
+  h1, h2, h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .cv-section, li, p {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
