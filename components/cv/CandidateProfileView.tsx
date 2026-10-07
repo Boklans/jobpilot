@@ -34,6 +34,23 @@ export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProf
   const skillsList = profile?.skills || [];
   const experiencesList = profile?.experiences || [];
 
+  // Dynamic Profile Completeness calculation
+  const completeness = React.useMemo(() => {
+    let score = 0;
+    if (profile?.fullName?.trim()) score += 15;
+    if (profile?.title?.trim()) score += 15;
+    if (profile?.summary?.trim() && profile.summary.trim().length > 10) score += 20;
+    if (skillsList.length >= 3) score += 25;
+    else if (skillsList.length > 0) score += 15;
+    if (experiencesList.length > 0) score += 25;
+
+    const percentage = Math.min(100, score);
+    return {
+      percentage,
+      isComplete: percentage === 100,
+    };
+  }, [profile?.fullName, profile?.title, profile?.summary, skillsList.length, experiencesList.length]);
+
   const handleAddSkill = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSkill.trim()) return;
@@ -136,16 +153,27 @@ export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProf
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Profile Completeness
             </span>
-            <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              92% Complete
+            <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
+              completeness.isComplete
+                ? "text-emerald-700 bg-emerald-50 border-emerald-300"
+                : "text-blue-700 bg-blue-50 border-blue-300"
+            }`}>
+              {completeness.percentage}% {completeness.isComplete ? "Повністю заповнено ⭐" : "Заповнено"}
             </span>
           </div>
           <div className="w-full max-w-md h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500 rounded-full w-[92%] transition-all" />
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${
+                completeness.isComplete ? "bg-emerald-500" : "bg-blue-600"
+              }`} 
+              style={{ width: `${completeness.percentage}%` }}
+            />
           </div>
         </div>
         <p className="text-xs text-slate-500 sm:max-w-xs sm:text-right">
-          Профіль чудово деталізовано: виявлено {skillsList.length} підтверджених навичок та {profile?.yearsOfExperience || 0}+ років комерційного досвіду.
+          {completeness.isComplete
+            ? `Профіль заповнено на 100%: ім'я, посада, біографія, ${skillsList.length} навичок та ${experiencesList.length} місць роботи.`
+            : `Виявлено ${skillsList.length} навичок та ${profile?.yearsOfExperience || 0}+ років комерційного досвіду.`}
         </p>
       </div>
 
