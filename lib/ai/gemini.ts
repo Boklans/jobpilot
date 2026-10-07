@@ -46,3 +46,4 @@ export async function callGeminiJson<T = any>(prompt: string, apiKey?: string): 
 
   return null;
 }
+

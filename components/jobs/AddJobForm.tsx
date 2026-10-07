@@ -12,11 +12,14 @@ interface AddJobFormProps {
 export function AddJobForm({ onAnalyze, isLoading }: AddJobFormProps) {
   const [inputText, setInputText] = useState("");
   const [timelineStep, setTimelineStep] = useState(0);
+  const [isParsingUrl, setIsParsingUrl] = useState(false);
+
+  const activeLoading = isLoading || isParsingUrl;
 
   // Simulated AI Pipeline steps for realistic Copilot feel
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isLoading) {
+    if (activeLoading) {
       setTimelineStep(1);
       interval = setInterval(() => {
         setTimelineStep((prev) => (prev < 4 ? prev + 1 : prev));
@@ -25,15 +28,37 @@ export function AddJobForm({ onAnalyze, isLoading }: AddJobFormProps) {
       setTimelineStep(0);
     }
     return () => clearInterval(interval);
-  }, [isLoading]);
+  }, [activeLoading]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || activeLoading) return;
 
-    // Smart auto-extraction from raw text or URL
+    const trimmed = inputText.trim();
+    const isUrl = trimmed.startsWith("http://") || trimmed.startsWith("https://");
+
+    if (isUrl) {
+      setIsParsingUrl(true);
+      try {
+        const res = await fetch("/api/parse-job", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: trimmed }),
+        });
+        const data = await res.json();
+        if (data.success && data.job) {
+          onAnalyze(data.job);
+          return;
+        }
+      } catch (err) {
+        console.warn("Failed to parse vacancy from URL, using fallback:", err);
+      } finally {
+        setIsParsingUrl(false);
+      }
+    }
+
+    // Smart auto-extraction from raw text or URL fallback
     const lines = inputText.split("\n").map(l => l.trim()).filter(Boolean);
-    const isUrl = inputText.trim().startsWith("http");
 
     let guessedTitle = "Senior Software Engineer";
     let guessedCompany = "Tech Company";
@@ -113,10 +138,10 @@ Key Requirements:
         <div className="relative">
           <textarea
             rows={5}
-            placeholder="Вставте сюди опис вакансії або посилання (https://djinni.co/jobs/...)"
+            placeholder="Вставте сюди опис вакансії або посилання (https://jobs.dou.ua/... або https://djinni.co/...)"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            disabled={isLoading}
+            disabled={activeLoading}
             className="w-full px-4 py-3.5 text-xs sm:text-sm rounded-2xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition font-sans leading-relaxed resize-none bg-slate-50/50 focus:bg-white"
             required
           />
@@ -128,11 +153,11 @@ Key Requirements:
 
             <button
               type="submit"
-              disabled={isLoading || !inputText.trim()}
+              disabled={activeLoading || !inputText.trim()}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs sm:text-sm hover:bg-blue-600 transition shadow-md active:scale-[0.98] disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4 text-blue-400" />
-              <span>{isLoading ? "Аналізую..." : "Calculate Match Score"}</span>
+              <span>{activeLoading ? (isParsingUrl ? "Завантажую сторінку..." : "Аналізую...") : "Calculate Match Score"}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -140,7 +165,7 @@ Key Requirements:
       </form>
 
       {/* AI Pipeline Live Timeline */}
-      {isLoading && (
+      {activeLoading && (
         <div className="mt-6 p-5 rounded-2xl bg-blue-50/60 border border-blue-200/80 animate-in fade-in space-y-3">
           <span className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
