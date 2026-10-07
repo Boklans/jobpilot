@@ -133,27 +133,46 @@ export default function HomePage() {
         {/* DASHBOARD TAB */}
         {activeTab === "dashboard" && (
           <div className="space-y-8 animate-in fade-in duration-300">
-            {/* Header Hero Banner */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-white p-7 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs">
-              <div className="space-y-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
-                  Daily Application Focus
-                </span>
+            {/* Dynamic Copilot Pulse Hero Banner */}
+            <div className="bg-white p-7 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Job Search Pulse
+                  </span>
+                </div>
+
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Good morning, {activeCandidate.fullName.split(" ")[0]}
+                  Доброго дня, {activeCandidate.fullName.split(" ")[0]} 👋
                 </h1>
-                <p className="text-sm text-slate-500">
-                  <strong className="text-slate-800 font-semibold">What should I apply to next?</strong> · {currentAnalyses.filter(a => a.analysis.score >= 85).length} strong opportunities waiting for you.
-                </p>
+
+                {/* Live Bullet Insights */}
+                <div className="space-y-1.5 text-xs sm:text-sm text-slate-600">
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span><strong className="text-slate-900 font-semibold">{currentAnalyses.filter(a => a.analysis.score >= 85).length} Strong Matches</strong> готові до адаптації</span>
+                  </div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className="text-purple-600 font-bold">⚡</span>
+                    <span><strong className="text-slate-900 font-semibold">{applications.filter(a => a.status === 'interview').length} компанія</strong> призначила інтерв'ю (Nordic FinTech)</span>
+                  </div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className="text-blue-600 font-bold">📊</span>
+                    <span>Твій середній Match Score: <strong className="text-slate-900 font-semibold">
+                      {Math.round(currentAnalyses.reduce((acc, curr) => acc + curr.analysis.score, 0) / Math.max(currentAnalyses.length, 1))}%
+                    </strong></span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <button
                   onClick={() => setActiveTab("analyze")}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition shadow-md shadow-blue-600/20 active:scale-[0.98]"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-900 text-white font-bold text-sm hover:bg-blue-600 transition shadow-md active:scale-[0.98]"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Analyze a Job</span>
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  <span>+ Quick Job Match</span>
                 </button>
               </div>
             </div>

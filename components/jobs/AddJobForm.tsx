@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Sparkles, Link as LinkIcon, FileText } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Sparkles, ArrowRight, CheckCircle2, Bot, Layers } from "lucide-react";
 import { JobListing } from "@/types";
 
 interface AddJobFormProps {
@@ -10,26 +10,58 @@ interface AddJobFormProps {
 }
 
 export function AddJobForm({ onAnalyze, isLoading }: AddJobFormProps) {
-  const [activeMode, setActiveMode] = useState<"text" | "url">("text");
-  const [jobTitle, setJobTitle] = useState("");
-  const [company, setCompany] = useState("");
-  const [location, setLocation] = useState("Remote");
-  const [salary, setSalary] = useState("");
-  const [jobUrl, setJobUrl] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
+  const [inputText, setInputText] = useState("");
+  const [timelineStep, setTimelineStep] = useState(0);
+
+  // Simulated AI Pipeline steps for realistic Copilot feel
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading) {
+      setTimelineStep(1);
+      interval = setInterval(() => {
+        setTimelineStep((prev) => (prev < 4 ? prev + 1 : prev));
+      }, 700);
+    } else {
+      setTimelineStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!jobDescription.trim() && !jobUrl.trim()) return;
+    if (!inputText.trim()) return;
+
+    // Smart auto-extraction from raw text or URL
+    const lines = inputText.split("\n").map(l => l.trim()).filter(Boolean);
+    const isUrl = inputText.trim().startsWith("http");
+
+    let guessedTitle = "Senior Software Engineer";
+    let guessedCompany = "Tech Company";
+    let guessedSalary: string | undefined = undefined;
+
+    if (!isUrl && lines.length > 0) {
+      // Find title & company heuristics
+      guessedTitle = lines[0].replace(/^(We are looking for|Hiring|Role:)/i, "").trim().slice(0, 50) || guessedTitle;
+      
+      const salaryMatch = inputText.match(/(\$\s?[\d,]+(?:\s?-\s?[\d,]+)?(?:\s?k)?)/i);
+      if (salaryMatch) guessedSalary = salaryMatch[1];
+
+      const companyMatch = inputText.match(/(?:at|company|team at)\s+([A-Z][A-Za-z0-9\s]{2,20})/);
+      if (companyMatch) guessedCompany = companyMatch[1].trim();
+    } else if (isUrl) {
+      if (inputText.includes("djinni.co")) guessedCompany = "Djinni Opportunity";
+      else if (inputText.includes("dou.ua")) guessedCompany = "DOU Job";
+      else if (inputText.includes("linkedin.com")) guessedCompany = "LinkedIn Role";
+    }
 
     const newJob: JobListing = {
       id: "job-" + Date.now(),
-      title: jobTitle || "Software Engineer",
-      company: company || "Tech Company",
-      location: location || "Remote",
-      salary: salary || undefined,
-      sourceUrl: jobUrl || undefined,
-      rawDescription: jobDescription || `Imported Job from: ${jobUrl}\nAnalyzing requirements automatically...`,
+      title: guessedTitle,
+      company: guessedCompany,
+      location: "Remote / Hybrid",
+      salary: guessedSalary,
+      sourceUrl: isUrl ? inputText.trim() : undefined,
+      rawDescription: inputText,
       createdAt: new Date().toISOString(),
     };
 
@@ -37,174 +69,107 @@ export function AddJobForm({ onAnalyze, isLoading }: AddJobFormProps) {
   };
 
   const handleFillSample = () => {
-    setJobTitle("Senior React / React Native Engineer");
-    setCompany("Apex Mobility");
-    setLocation("Remote · Europe");
-    setSalary("$4,500 - $6,000");
-    setJobUrl("https://djinni.co/jobs/senior-mobile-engineer");
-    setJobDescription(`We are looking for a Senior React / React Native developer to join our team.
+    setInputText(`Senior React Native & Mobile Engineer at Nordic FinTech
+Salary: $4,500 - $6,000 · Remote (Europe)
 
-Responsibilities:
-- Build high-performance mobile and web interfaces with React Native, React and TypeScript.
-- Optimize app loading performance and memory usage.
-- Work closely with backend engineers using GraphQL & REST.
+About the role:
+We are looking for a Senior React Native Engineer to lead the mobile engineering effort for our core banking product.
 
-Requirements:
-- 5+ years of commercial development experience
-- Solid TypeScript & React Native skills
-- Experience with Expo, Redux / Zustand, and Docker
-- AWS or Cloud infrastructure knowledge is a big advantage
-- Strong communication skills, B2+ English`);
+Key Requirements:
+- 5+ years of software engineering experience
+- Strong proficiency in React Native, TypeScript, and Expo
+- Production experience with REST APIs and state management (Zustand/Redux)
+- Critical: Solid experience with GraphQL queries and schema design
+- AWS cloud knowledge and Docker are a big plus
+- Upper-Intermediate English or higher`);
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 mb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-8 mb-8 transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-600" />
-            Проаналізувати нову вакансію
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
+            <Bot className="w-4 h-4" />
+            AI Match Engine
+          </span>
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight mt-1">
+            Analyze Any Job in Seconds
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Вставте опис або посилання з Djinni, DOU, LinkedIn чи Work.ua для моментального Match Score.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Просто вставте опис вакансії або посилання з Djinni, DOU чи LinkedIn. AI сам витягне вимоги та розрахує Match.
           </p>
         </div>
 
         <button
           type="button"
           onClick={handleFillSample}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition border border-blue-200 self-start sm:self-auto"
+          className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 transition border border-slate-200 self-start sm:self-auto shrink-0"
         >
-          Заповнити приклад (Djinni)
-        </button>
-      </div>
-
-      <div className="flex border-b border-slate-200 mb-6">
-        <button
-          type="button"
-          onClick={() => setActiveMode("text")}
-          className={`flex items-center gap-2 py-2.5 px-4 text-xs sm:text-sm font-semibold border-b-2 transition -mb-[2px] ${
-            activeMode === "text"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          Вставити текст вакансії (Рекомендовано)
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveMode("url")}
-          className={`flex items-center gap-2 py-2.5 px-4 text-xs sm:text-sm font-semibold border-b-2 transition -mb-[2px] ${
-            activeMode === "url"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <LinkIcon className="w-4 h-4" />
-          Посилання на вакансію (URL)
+          Вставити приклад (Djinni)
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Посада
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Senior React Developer"
-              value={jobTitle}
-              onChange={(e) => setJobTitle(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Компанія
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Fintech Corp"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Локація / Формат
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Remote / Kyiv"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Зарплатна вилка (опціонально)
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. $4,000 - $5,500"
-              value={salary}
-              onChange={(e) => setSalary(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-            />
-          </div>
-        </div>
-
-        {activeMode === "url" && (
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              URL вакансії
-            </label>
-            <input
-              type="url"
-              placeholder="https://djinni.co/jobs/..."
-              value={jobUrl}
-              onChange={(e) => setJobUrl(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-            />
-          </div>
-        )}
-
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-            Опис та вимоги вакансії
-          </label>
+        <div className="relative">
           <textarea
             rows={5}
-            placeholder="Скопіюйте сюди текст вимог або весь опис вакансії..."
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition font-sans"
-            required={activeMode === "text"}
-          />
-        </div>
-
-        <div className="flex justify-end pt-2">
-          <button
-            type="submit"
+            placeholder="Вставте сюди опис вакансії або посилання (https://djinni.co/jobs/...)"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
             disabled={isLoading}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition shadow-md shadow-blue-600/20 active:scale-[0.98] disabled:opacity-50"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>{isLoading ? "Аналізую вакансію..." : "Розрахувати Match Score"}</span>
-          </button>
+            className="w-full px-4 py-3.5 text-xs sm:text-sm rounded-2xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition font-sans leading-relaxed resize-none bg-slate-50/50 focus:bg-white"
+            required
+          />
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <span className="text-[11px] text-slate-400">
+              💡 Автоматично розпізнає назву посади, стек технологій, компанію та зарплату.
+            </span>
+
+            <button
+              type="submit"
+              disabled={isLoading || !inputText.trim()}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs sm:text-sm hover:bg-blue-600 transition shadow-md active:scale-[0.98] disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4 text-blue-400" />
+              <span>{isLoading ? "Аналізую..." : "Calculate Match Score"}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </form>
+
+      {/* AI Pipeline Live Timeline */}
+      {isLoading && (
+        <div className="mt-6 p-5 rounded-2xl bg-blue-50/60 border border-blue-200/80 animate-in fade-in space-y-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+            JobPilot Copilot Execution Pipeline
+          </span>
+
+          <div className="space-y-2 text-xs">
+            <div className={`flex items-center gap-2.5 transition-all ${timelineStep >= 1 ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
+              {timelineStep >= 1 ? <CheckCircle2 className="w-4 h-4 text-blue-600" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+              <span>1. Екстракція вимог вакансії та технологічного стеку</span>
+            </div>
+
+            <div className={`flex items-center gap-2.5 transition-all ${timelineStep >= 2 ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
+              {timelineStep >= 2 ? <CheckCircle2 className="w-4 h-4 text-blue-600" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+              <span>2. Семантичне звірення з резюме кандидата (досвід, роки, стек)</span>
+            </div>
+
+            <div className={`flex items-center gap-2.5 transition-all ${timelineStep >= 3 ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
+              {timelineStep >= 3 ? <CheckCircle2 className="w-4 h-4 text-blue-600" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+              <span>3. Детекція критичних ATS-фільтрів та зон ризику (Missing gaps)</span>
+            </div>
+
+            <div className={`flex items-center gap-2.5 transition-all ${timelineStep >= 4 ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
+              {timelineStep >= 4 ? <CheckCircle2 className="w-4 h-4 text-emerald-600 font-bold" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+              <span>4. Формулювання фінального вердикту та готовність до адаптації</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

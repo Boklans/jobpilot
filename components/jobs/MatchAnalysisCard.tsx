@@ -132,14 +132,19 @@ export function MatchAnalysisCard({
             </div>
           </div>
 
-          {/* Match Score Badge */}
-          <div className="flex items-center sm:self-start md:self-auto gap-3">
-            <div className={`flex flex-col items-center justify-center p-3.5 px-5 rounded-2xl border-2 ring-4 ${getScoreColor(analysis.score)}`}>
-              <span className="text-3xl font-black tracking-tight">{analysis.score}%</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider opacity-90">
-                {analysis.recommendation.replace('_', ' ')}
+          {/* Premium Apple-style Match Score Typography */}
+          <div className="flex items-baseline md:flex-col md:items-end justify-between sm:self-start md:self-auto gap-1 bg-slate-50/80 px-5 py-3 rounded-2xl border border-slate-200/60">
+            <div className="flex items-baseline gap-1">
+              <span className={`text-4xl sm:text-5xl font-black tracking-tighter tabular-nums ${
+                analysis.score >= 85 ? "text-emerald-600" : analysis.score >= 70 ? "text-blue-600" : "text-amber-600"
+              }`}>
+                {analysis.score}
               </span>
+              <span className="text-sm font-bold text-slate-400">%</span>
             </div>
+            <span className="text-[10px] font-bold tracking-widest uppercase text-slate-500">
+              {analysis.recommendation.replace('_', ' ')}
+            </span>
           </div>
         </div>
       </div>
