@@ -274,7 +274,7 @@ export function MatchAnalysisCard({
           </button>
 
           <button
-            onClick={handleCoverLetter}
+            onClick={() => handleCoverLetter()}
             disabled={isGeneratingCL}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition active:scale-[0.98] disabled:opacity-50"
           >

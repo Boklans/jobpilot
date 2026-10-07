@@ -148,7 +148,7 @@ export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProf
 
       {/* Profile Completeness Widget */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-2 flex-1">
+        <div className="space-y-2.5 flex-1">
           <div className="flex items-center justify-between sm:justify-start gap-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Profile Completeness
@@ -158,7 +158,7 @@ export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProf
                 ? "text-emerald-700 bg-emerald-50 border-emerald-300"
                 : "text-blue-700 bg-blue-50 border-blue-300"
             }`}>
-              {completeness.percentage}% {completeness.isComplete ? "Повністю заповнено ⭐" : "Заповнено"}
+              {completeness.percentage}% {completeness.isComplete ? "Повністю заповнено (100%) ⭐" : "Заповнено"}
             </span>
           </div>
           <div className="w-full max-w-md h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -169,11 +169,29 @@ export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProf
               style={{ width: `${completeness.percentage}%` }}
             />
           </div>
+          {/* Breakdown checklist badges */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] font-medium text-slate-600">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md ${profile?.fullName?.trim() ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+              {profile?.fullName?.trim() ? '✓' : '○'} Ім'я
+            </span>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md ${profile?.title?.trim() ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+              {profile?.title?.trim() ? '✓' : '○'} Посада
+            </span>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md ${profile?.summary?.trim() && profile.summary.trim().length > 10 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+              {profile?.summary?.trim() && profile.summary.trim().length > 10 ? '✓' : '○'} Біографія
+            </span>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md ${skillsList.length >= 3 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+              {skillsList.length >= 3 ? '✓' : '○'} Стек навичок ({skillsList.length})
+            </span>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md ${experiencesList.length > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+              {experiencesList.length > 0 ? '✓' : '○'} Досвід роботи ({experiencesList.length})
+            </span>
+          </div>
         </div>
         <p className="text-xs text-slate-500 sm:max-w-xs sm:text-right">
           {completeness.isComplete
-            ? `Профіль заповнено на 100%: ім'я, посада, біографія, ${skillsList.length} навичок та ${experiencesList.length} місць роботи.`
-            : `Виявлено ${skillsList.length} навичок та ${profile?.yearsOfExperience || 0}+ років комерційного досвіду.`}
+            ? `Профіль заповнено на 100%: всі секції, ${skillsList.length} навичок та ${experiencesList.length} місць роботи активні.`
+            : `Виявлено ${skillsList.length} навичок та ${experiencesList.length} місць роботи.`}
         </p>
       </div>
 
