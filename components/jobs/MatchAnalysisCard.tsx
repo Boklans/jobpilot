@@ -146,37 +146,78 @@ export function MatchAnalysisCard({
 
       {/* Main Analysis Body */}
       <div className="p-6 sm:p-7 space-y-6">
-        {/* Short Summary & Recommendation */}
-        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4">
-          <p className="text-sm text-slate-700 leading-relaxed font-normal">
-            <strong className="text-slate-900 font-semibold">Вердикт JobPilot: </strong>
+        {/* Core Verdict & Biggest Concern Box */}
+        <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/70 pb-3.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                JobPilot Verdict:
+              </span>
+              <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide border ${
+                analysis.score >= 85 
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                  : analysis.score >= 70
+                  ? "bg-blue-100 text-blue-800 border-blue-300"
+                  : "bg-amber-100 text-amber-800 border-amber-300"
+              }`}>
+                {analysis.score >= 85 ? "✓ Worth applying (Strong match)" : analysis.score >= 70 ? "⚡ Worth applying (Tailor CV recommended)" : "⚠ High competition risk"}
+              </span>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">
+              Шанси пройти скринінг: <strong className="text-slate-800">{analysis.score >= 85 ? "Високі" : analysis.score >= 70 ? "Помірні" : "Низькі"}</strong>
+            </span>
+          </div>
+
+          {/* Biggest Concern */}
+          {analysis.missingSkills.length > 0 && (
+            <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 block mb-1">
+                ⚠️ Biggest Concern (Головний ризик відмови):
+              </span>
+              <p className="text-xs sm:text-sm text-amber-950 leading-relaxed font-normal">
+                {analysis.experienceGaps[0] || `Вакансія вимагає досвід з ${analysis.missingSkills.slice(0, 2).join(", ")}, що недостатньо підтверджено у вашому поточному резюме.`}
+              </p>
+            </div>
+          )}
+
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
             {analysis.summary}
           </p>
         </div>
 
-        {/* Strengths and Gaps Grid */}
+        {/* Why You Match & What's Missing Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Strengths */}
-          <div className="bg-emerald-50/50 border border-emerald-200/70 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-3 text-emerald-800 font-semibold text-sm">
-              <CheckCircle className="w-4 h-4 text-emerald-600" />
-              <span>Твої сильні сторони під вакансію ({analysis.strengths.length})</span>
+          {/* Why You Match */}
+          <div className="bg-white border border-emerald-200/80 rounded-2xl p-5 shadow-2xs">
+            <div className="flex items-center justify-between mb-3.5 text-emerald-800 font-bold text-xs uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                Why You Match
+              </span>
+              <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
+                {analysis.strengths.length} пунктів
+              </span>
             </div>
             <ul className="space-y-2">
               {analysis.strengths.map((str, idx) => (
-                <li key={idx} className="text-xs sm:text-sm text-emerald-950 flex items-start gap-2">
-                  <span className="text-emerald-500 font-bold mt-0.5">✓</span>
+                <li key={idx} className="text-xs sm:text-sm text-slate-800 flex items-start gap-2">
+                  <span className="text-emerald-600 font-bold mt-0.5">✓</span>
                   <span>{str}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Missing Skills / Gaps */}
-          <div className="bg-amber-50/40 border border-amber-200/70 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-3 text-amber-800 font-semibold text-sm">
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
-              <span>Зони уваги / чого не вистачає в CV ({analysis.missingSkills.length})</span>
+          {/* What's Missing */}
+          <div className="bg-white border border-amber-200/80 rounded-2xl p-5 shadow-2xs">
+            <div className="flex items-center justify-between mb-3.5 text-amber-800 font-bold text-xs uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                What's Missing
+              </span>
+              <span className="text-[11px] font-semibold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+                {analysis.missingSkills.length} навичок
+              </span>
             </div>
             {analysis.missingSkills.length > 0 ? (
               <div className="space-y-3">
@@ -184,30 +225,28 @@ export function MatchAnalysisCard({
                   {analysis.missingSkills.map((sk, idx) => (
                     <span 
                       key={idx} 
-                      className="text-xs font-semibold px-2.5 py-1 rounded-md bg-amber-100/90 text-amber-900 border border-amber-300"
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200"
                     >
                       ⚠ {sk}
                     </span>
                   ))}
                 </div>
-                {analysis.experienceGaps.length > 0 && (
-                  <p className="text-xs text-amber-900/80 leading-relaxed">
-                    {analysis.experienceGaps[0]}
-                  </p>
-                )}
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Ці вимоги шукатиме ATS або рекрутер на першому скринінгу.
+                </p>
               </div>
             ) : (
-              <p className="text-xs text-slate-600">Критичних прогалин у навичках не виявлено.</p>
+              <p className="text-xs text-slate-500">Критичних прогалин у навичках не виявлено.</p>
             )}
           </div>
         </div>
 
         {/* Action Buttons Toolbar */}
-        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-3">
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3">
           <button
             onClick={handleTailor}
             disabled={isGeneratingCV}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition shadow-xs active:scale-[0.98] disabled:opacity-50"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition shadow-md shadow-blue-600/20 active:scale-[0.98] disabled:opacity-50"
           >
             <Sparkles className="w-4 h-4" />
             <span>{isGeneratingCV ? "Адаптую резюме..." : "Tailor My CV"}</span>
@@ -216,16 +255,16 @@ export function MatchAnalysisCard({
           <button
             onClick={handleCoverLetter}
             disabled={isGeneratingCL}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white font-medium text-sm hover:bg-slate-800 transition shadow-xs active:scale-[0.98] disabled:opacity-50"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition active:scale-[0.98] disabled:opacity-50"
           >
             <Mail className="w-4 h-4" />
-            <span>{isGeneratingCL ? "Пишу листа..." : "Write Cover Letter"}</span>
+            <span>{isGeneratingCL ? "Пишу..." : "Write Cover Letter"}</span>
           </button>
 
           <button
             onClick={handleTrackerClick}
             disabled={isAddedToTracker}
-            className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition ${
+            className={`inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition ${
               isAddedToTracker
                 ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                 : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
@@ -239,14 +278,14 @@ export function MatchAnalysisCard({
             ) : (
               <>
                 <BookmarkPlus className="w-4 h-4 text-slate-500" />
-                <span>Зберегти в Tracker</span>
+                <span>Track Application</span>
               </>
             )}
           </button>
 
           <button
             onClick={() => setShowFullJob(!showFullJob)}
-            className="text-xs text-slate-500 hover:text-slate-800 ml-auto inline-flex items-center gap-1 py-1"
+            className="text-xs text-slate-400 hover:text-slate-700 ml-auto inline-flex items-center gap-1 py-1"
           >
             {showFullJob ? "Сховати опис" : "Повний опис вакансії"}
             {showFullJob ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}

@@ -126,121 +126,133 @@ export default function HomePage() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        candidates={candidates}
         activeCandidate={activeCandidate}
-        onSelectCandidate={handleSelectCandidate}
-        onAddNewCandidate={handleAddNewCandidate}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
         {/* DASHBOARD TAB */}
         {activeTab === "dashboard" && (
           <div className="space-y-8 animate-in fade-in duration-300">
-            {/* Welcome Banner */}
-            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-7 sm:p-9 text-white shadow-xl relative overflow-hidden">
-              <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-blue-500/10 to-transparent pointer-events-none" />
-              
-              <div className="relative z-10 max-w-2xl space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs text-blue-200 font-medium">
-                  <Zap className="w-3.5 h-3.5 text-blue-400" />
-                  <span>JobPilot Active Copilot</span>
-                </div>
-                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-                  Доброго дня, {activeCandidate.fullName.split(" ")[0]}!
+            {/* Header Hero Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-white p-7 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                  Daily Application Focus
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  Good morning, {activeCandidate.fullName.split(" ")[0]}
                 </h1>
-                <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                  Не витрачайте час на сотні шаблонних відгуків. Перевіряйте Match Score, підсилюйте резюме під вимоги та відгукуйтесь із впевненістю.
+                <p className="text-sm text-slate-500">
+                  <strong className="text-slate-800 font-semibold">What should I apply to next?</strong> · {currentAnalyses.filter(a => a.analysis.score >= 85).length} strong opportunities waiting for you.
                 </p>
+              </div>
 
-                <div className="pt-2 flex flex-wrap gap-3">
-                  <button
-                    onClick={() => setActiveTab("analyze")}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-500 transition shadow-lg shadow-blue-600/30 active:scale-[0.98]"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>Проаналізувати вакансію</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("tracker")}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 text-white font-semibold text-sm hover:bg-white/20 transition border border-white/20 active:scale-[0.98]"
-                  >
-                    <Briefcase className="w-4 h-4" />
-                    <span>Відкрити трекер ({applications.length})</span>
-                  </button>
-                </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setActiveTab("analyze")}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition shadow-md shadow-blue-600/20 active:scale-[0.98]"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Analyze a Job</span>
+                </button>
               </div>
             </div>
 
-            {/* Metrics Ribbon */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Активних вакансій
-                </span>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-black text-slate-900">{currentAnalyses.length}</span>
-                  <span className="text-xs text-emerald-600 font-semibold">+2 сьогодні</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Strong Match (85%+)
-                </span>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-black text-emerald-600">
-                    {currentAnalyses.filter((a) => a.analysis.score >= 85).length}
-                  </span>
-                  <span className="text-xs text-slate-500">Високі шанси</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Подано заявок
-                </span>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-black text-blue-600">{applications.length}</span>
-                  <span className="text-xs text-blue-600 font-semibold">У трекері</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Призначено інтерв'ю
-                </span>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-3xl font-black text-purple-600">
-                    {applications.filter((a) => a.status === "interview").length}
-                  </span>
-                  <span className="text-xs text-purple-600 font-semibold">Активні розмови</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Add Form on Dashboard */}
-            <AddJobForm onAnalyze={handleAnalyzeNewJob} isLoading={isAnalyzing} />
-
-            {/* Matched Jobs Feed */}
+            {/* Recommended Opportunities List */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Рекомендовані вакансії та Match Analysis</h3>
+                  <h2 className="text-lg font-bold text-slate-900">Recommended Opportunities</h2>
                   <p className="text-xs sm:text-sm text-slate-500">
-                    Результати перевірки вимог під активне резюме розробника.
+                    Вакансії, де профіль має найвищі шанси пройти скринінг рекрутера.
                   </p>
                 </div>
+                <button
+                  onClick={() => setActiveTab("analyze")}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                >
+                  Переглянути всі ({currentAnalyses.length}) →
+                </button>
               </div>
 
-              {currentAnalyses.map(({ job, analysis }) => (
-                <MatchAnalysisCard
-                  key={job.id}
-                  job={job}
-                  analysis={analysis}
-                  candidate={activeCandidate}
-                  onAddToTracker={handleAddToTracker}
-                />
-              ))}
+              <div className="space-y-3">
+                {currentAnalyses.slice(0, 3).map(({ job, analysis }) => (
+                  <div
+                    key={job.id}
+                    onClick={() => setActiveTab("analyze")}
+                    className="group bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-base text-slate-900 group-hover:text-blue-600 transition">
+                          {job.title}
+                        </h3>
+                        {job.salary && (
+                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                            {job.salary}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span>{job.company}</span>
+                        <span>·</span>
+                        <span>{job.location}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 self-end sm:self-auto">
+                      <div className="text-right">
+                        <span className={`text-base font-black px-3 py-1 rounded-xl border ${
+                          analysis.score >= 85
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-blue-50 text-blue-700 border-blue-200"
+                        }`}>
+                          {analysis.score}% MATCH
+                        </span>
+                      </div>
+                      <span className="text-xs font-semibold text-blue-600 group-hover:translate-x-0.5 transition hidden sm:inline">
+                        View Match →
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Applications Preview */}
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Recent Applications</h2>
+                  <p className="text-xs sm:text-sm text-slate-500">
+                    Статус ваших останніх поданих заявок у трекері.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveTab("tracker")}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                >
+                  Відкрити трекер ({applications.length}) →
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {applications.slice(0, 2).map((app) => (
+                  <div
+                    key={app.id}
+                    onClick={() => setActiveTab("tracker")}
+                    className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition cursor-pointer flex items-center justify-between"
+                  >
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900">{app.job.company}</h4>
+                      <p className="text-xs text-slate-500">{app.job.title}</p>
+                    </div>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider bg-slate-100 text-slate-700">
+                      {app.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
