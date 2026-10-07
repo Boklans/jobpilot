@@ -177,65 +177,115 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Recommended Opportunities List */}
+            {/* Recommended Opportunities List - The Visual Core */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Recommended Opportunities</h2>
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <span>Recommended Opportunities</span>
+                    <span className="text-xs bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                      {currentAnalyses.length}
+                    </span>
+                  </h2>
                   <p className="text-xs sm:text-sm text-slate-500">
-                    Вакансії, де профіль має найвищі шанси пройти скринінг рекрутера.
+                    Вакансії, де твій профіль має найвищу конверсію на інтерв'ю.
                   </p>
                 </div>
-                <button
-                  onClick={() => setActiveTab("analyze")}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                >
-                  Переглянути всі ({currentAnalyses.length}) →
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {currentAnalyses.slice(0, 3).map(({ job, analysis }) => (
-                  <div
-                    key={job.id}
+                {currentAnalyses.length > 0 && (
+                  <button
                     onClick={() => setActiveTab("analyze")}
-                    className="group bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-base text-slate-900 group-hover:text-blue-600 transition">
-                          {job.title}
-                        </h3>
-                        {job.salary && (
-                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                            {job.salary}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span>{job.company}</span>
-                        <span>·</span>
-                        <span>{job.location}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 self-end sm:self-auto">
-                      <div className="text-right">
-                        <span className={`text-base font-black px-3 py-1 rounded-xl border ${
-                          analysis.score >= 85
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-blue-50 text-blue-700 border-blue-200"
-                        }`}>
-                          {analysis.score}% MATCH
-                        </span>
-                      </div>
-                      <span className="text-xs font-semibold text-blue-600 group-hover:translate-x-0.5 transition hidden sm:inline">
-                        View Match →
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                    Переглянути всі ({currentAnalyses.length}) →
+                  </button>
+                )}
               </div>
+
+              {currentAnalyses.length > 0 ? (
+                <div className="space-y-3.5">
+                  {currentAnalyses.slice(0, 4).map(({ job, analysis }) => (
+                    <div
+                      key={job.id}
+                      onClick={() => setActiveTab("analyze")}
+                      className="group bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <h3 className="font-bold text-base sm:text-lg text-slate-900 group-hover:text-blue-600 transition">
+                              {job.title}
+                            </h3>
+                            {job.salary && (
+                              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                {job.salary}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                            <span className="text-slate-800 font-semibold">{job.company}</span>
+                            <span>·</span>
+                            <span>{job.location}</span>
+                          </div>
+
+                          {/* 2-3 Match Reasons */}
+                          <div className="pt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+                            {analysis.strengths.slice(0, 3).map((strength, sIdx) => (
+                              <span key={sIdx} className="inline-flex items-center gap-1.5 text-slate-700">
+                                <span className="text-emerald-600 font-bold">✓</span>
+                                <span>{strength}</span>
+                              </span>
+                            ))}
+                            {analysis.missingSkills.length > 0 && (
+                              <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
+                                <span>⚠ Бракує:</span> {analysis.missingSkills.slice(0, 2).join(", ")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right Apple-style Score + Action */}
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
+                          <div className="text-right">
+                            <span className={`text-2xl sm:text-3xl font-black tracking-tight tabular-nums ${
+                              analysis.score >= 85 ? "text-emerald-600" : analysis.score >= 70 ? "text-blue-600" : "text-amber-600"
+                            }`}>
+                              {analysis.score}%
+                            </span>
+                            <span className="text-[10px] block font-bold uppercase tracking-wider text-slate-400">
+                              {analysis.recommendation.replace('_', ' ')}
+                            </span>
+                          </div>
+
+                          <span className="text-xs font-semibold text-blue-600 group-hover:translate-x-0.5 transition hidden sm:inline-flex items-center gap-1">
+                            Breakdown →
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Empty State */
+                <div className="bg-white rounded-3xl p-10 text-center border-2 border-dashed border-slate-200/90 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">Поки що немає проаналізованих вакансій</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Вставте першу вакансію з Djinni, DOU або LinkedIn, щоб згенерувати розбір відповідності та персональні рекомендації.
+                  </p>
+                  <div className="pt-2">
+                    <button
+                      onClick={() => setActiveTab("analyze")}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Проаналізувати вакансію</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Recent Applications Preview */}
