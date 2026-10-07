@@ -80,8 +80,9 @@ export default function HomePage() {
   };
 
   const handleUpdateActiveProfile = (updated: CandidateProfile) => {
+    const profileToSave: CandidateProfile = { ...updated, id: activeCandidateId };
     setCandidates((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c))
+      prev.map((c) => (c.id === activeCandidateId ? profileToSave : c))
     );
   };
 

@@ -86,7 +86,13 @@ export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProf
         throw new Error(data.error || "Помилка аналізу файлу");
       }
 
-      onUpdateProfile(data.profile);
+      const parsed = data.profile;
+      setFullName(parsed.fullName || "");
+      setTitle(parsed.title || "");
+      setYears(parsed.yearsOfExperience || 3);
+      setSummary(parsed.summary || "");
+
+      onUpdateProfile(parsed);
       setUploadSuccess(`Резюме "${file.name}" успішно розпізнано та оновлено!`);
       setTimeout(() => setUploadSuccess(null), 5000);
     } catch (err: unknown) {
