@@ -1,0 +1,291 @@
+"use client";
+
+import React, { useState } from "react";
+import { CandidateProfile } from "@/types";
+import { User, Briefcase, Plus, X, UploadCloud, CheckCircle2 } from "lucide-react";
+
+interface CandidateProfileViewProps {
+  profile: CandidateProfile;
+  onUpdateProfile: (updated: CandidateProfile) => void;
+}
+
+export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProfileViewProps) {
+  const [newSkill, setNewSkill] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [fullName, setFullName] = useState(profile.fullName);
+  const [title, setTitle] = useState(profile.title);
+  const [years, setYears] = useState(profile.yearsOfExperience);
+  const [summary, setSummary] = useState(profile.summary);
+  const [simulatedUpload, setSimulatedUpload] = useState(false);
+
+  const handleAddSkill = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSkill.trim()) return;
+    if (!profile.skills.includes(newSkill.trim())) {
+      onUpdateProfile({
+        ...profile,
+        skills: [...profile.skills, newSkill.trim()]
+      });
+    }
+    setNewSkill("");
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    onUpdateProfile({
+      ...profile,
+      skills: profile.skills.filter(s => s !== skillToRemove)
+    });
+  };
+
+  const handleSaveProfile = () => {
+    onUpdateProfile({
+      ...profile,
+      fullName,
+      title,
+      yearsOfExperience: Number(years),
+      summary
+    });
+    setIsEditing(false);
+  };
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setFullName(profile.fullName);
+    setTitle(profile.title);
+    setYears(profile.yearsOfExperience);
+    setSummary(profile.summary);
+  }, [profile]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/parse-cv", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Помилка аналізу файлу");
+      }
+
+      onUpdateProfile(data.profile);
+      setUploadSuccess(`Резюме "${file.name}" успішно розпізнано та оновлено!`);
+      setTimeout(() => setUploadSuccess(null), 5000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploadError(msg);
+    } finally {
+      setIsUploading(false);
+      // Reset input value
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Профіль та Резюме Кандидата</h2>
+          <p className="text-sm text-slate-500">
+            Дані, на основі яких JobPilot розраховує Match Score та адаптує відгуки.
+          </p>
+        </div>
+
+        {/* Upload new CV button */}
+        <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold cursor-pointer hover:bg-slate-800 transition shadow-xs self-start sm:self-auto ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+          <UploadCloud className="w-4 h-4" />
+          <span>{isUploading ? "Обробка резюме..." : "Завантажити новий PDF / DOCX"}</span>
+          <input 
+            type="file" 
+            accept=".pdf,.docx,.txt" 
+            className="hidden" 
+            onChange={handleFileUpload} 
+            disabled={isUploading}
+          />
+        </label>
+      </div>
+
+      {isUploading && (
+        <div className="p-4 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl text-xs flex items-center gap-2 animate-pulse">
+          <span className="text-base animate-spin">⚡</span>
+          <span className="font-medium">JobPilot витягує текст, технології, досвід та структуру з файлу...</span>
+        </div>
+      )}
+
+      {uploadSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span className="font-medium">{uploadSuccess}</span>
+        </div>
+      )}
+
+      {uploadError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs flex items-center gap-2">
+          <span className="text-rose-600 font-bold shrink-0">✕</span>
+          <span className="font-medium">{uploadError}</span>
+        </div>
+      )}
+
+      {/* Main Details Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-7 space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg border border-blue-100">
+              {profile.fullName.charAt(0)}
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-lg">{profile.fullName}</h3>
+              <p className="text-xs text-slate-500 font-medium">{profile.title} · {profile.yearsOfExperience} років досвіду</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              if (isEditing) handleSaveProfile();
+              else setIsEditing(true);
+            }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 transition"
+          >
+            {isEditing ? "Зберегти зміни" : "Редагувати"}
+          </button>
+        </div>
+
+        {isEditing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Ім'я</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Посада</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Років досвіду</label>
+              <input
+                type="number"
+                value={years}
+                onChange={(e) => setYears(Number(e.target.value))}
+                className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2"
+              />
+            </div>
+            <div className="sm:col-span-3">
+              <label className="block text-xs font-bold text-slate-700 mb-1">Про себе (Summary)</label>
+              <textarea
+                rows={3}
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 font-sans"
+              />
+            </div>
+          </div>
+        ) : (
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Professional Summary
+            </span>
+            <p className="text-sm text-slate-700 mt-1 leading-relaxed">
+              {profile.summary}
+            </p>
+          </div>
+        )}
+
+        {/* Skills Tag Cloud */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Навички та технології ({profile.skills.length})
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            {profile.skills.map((skill) => (
+              <span
+                key={skill}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200/70"
+              >
+                <span>{skill}</span>
+                <button
+                  onClick={() => handleRemoveSkill(skill)}
+                  className="text-slate-400 hover:text-rose-600 transition"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+
+          {/* Add skill form */}
+          <form onSubmit={handleAddSkill} className="flex gap-2 max-w-sm">
+            <input
+              type="text"
+              placeholder="Додати навичку (напр. Redis, AWS)..."
+              value={newSkill}
+              onChange={(e) => setNewSkill(e.target.value)}
+              className="flex-1 text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Додати</span>
+            </button>
+          </form>
+        </div>
+
+        {/* Experience List */}
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-3">
+            Історія роботи (Experience)
+          </span>
+          <div className="space-y-4">
+            {profile.experiences.map((exp) => (
+              <div key={exp.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900">{exp.position}</h4>
+                    <span className="text-xs text-slate-500 font-medium">{exp.company}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-500 px-2.5 py-0.5 rounded-full bg-white border border-slate-200">
+                    {exp.period}
+                  </span>
+                </div>
+                <ul className="list-disc list-inside text-xs text-slate-600 space-y-1">
+                  {exp.description.map((bullet, idx) => (
+                    <li key={idx}>{bullet}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

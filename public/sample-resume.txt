@@ -1,0 +1,30 @@
+Олексій Коваленко
+Senior Full-Stack & Node.js Developer
+Kyiv, Ukraine | alex.kovalenko@example.com | 7+ years of commercial experience
+
+SUMMARY
+Senior Software Engineer із 7+ роками досвіду розробки високонавантажених сервісів та web-додатків. Глибока експертиза у TypeScript, Node.js, NestJS, React, PostgreSQL, Redis та Docker. Досвід проєктування мікросервісної архітектури та налаштування CI/CD процесів.
+
+SKILLS
+- Languages & Frameworks: TypeScript, JavaScript, Node.js, NestJS, Express, React, Next.js, Redux, Tailwind CSS
+- Databases & Queues: PostgreSQL, MongoDB, Redis, RabbitMQ
+- Cloud & DevOps: Docker, Kubernetes, AWS (S3, EC2, Lambda), CI/CD, Git
+- Architecture & Principles: Microservices, REST APIs, GraphQL, Clean Architecture, Unit Tests (Jest)
+
+EXPERIENCE
+
+FinTech Payments Global — Lead Backend / Full-Stack Engineer
+2022 - Present
+- Розробка ядра платіжного шлюзу на Node.js / NestJS та PostgreSQL з пропускною здатністю 1500+ RPS.
+- Впровадження кешування через Redis, що зменшило затримку API на 35%.
+- Налаштування автоматизованих пайплайнів CI/CD через GitHub Actions та деплой у Docker/Kubernetes.
+
+Global SaaS Core — Senior Backend Developer
+2019 - 2022
+- Проєктування та розробка REST та GraphQL API для міжнародної CRM-системи.
+- Інтеграція зі сторонніми сервісами (Stripe, Twilio, HubSpot).
+- Оптимізація складних SQL запитів до PostgreSQL, оптимізація індексів та партиціонування таблиць.
+
+EDUCATION
+Національний технічний університет України "КПІ", Магістр комп'ютерних наук (2018)
+
