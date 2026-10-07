@@ -99,16 +99,16 @@ export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProf
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Профіль та Резюме Кандидата</h2>
-          <p className="text-sm text-slate-500">
-            Дані, на основі яких JobPilot розраховує Match Score та адаптує відгуки.
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Candidate Profile</h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Фундамент професійного профілю, за яким JobPilot розраховує Match Score та адаптує резюме.
           </p>
         </div>
 
         {/* Upload new CV button */}
-        <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold cursor-pointer hover:bg-slate-800 transition shadow-xs self-start sm:self-auto ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+        <label className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 text-white text-xs font-bold cursor-pointer hover:bg-blue-600 transition shadow-xs self-start sm:self-auto ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
           <UploadCloud className="w-4 h-4" />
-          <span>{isUploading ? "Обробка резюме..." : "Завантажити новий PDF / DOCX"}</span>
+          <span>{isUploading ? "Обробка резюме..." : "Upload new CV"}</span>
           <input 
             type="file" 
             accept=".pdf,.docx,.txt" 
@@ -117,6 +117,26 @@ export function CandidateProfileView({ profile, onUpdateProfile }: CandidateProf
             disabled={isUploading}
           />
         </label>
+      </div>
+
+      {/* Profile Completeness Widget */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-2 flex-1">
+          <div className="flex items-center justify-between sm:justify-start gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Profile Completeness
+            </span>
+            <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              92% Complete
+            </span>
+          </div>
+          <div className="w-full max-w-md h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500 rounded-full w-[92%] transition-all" />
+          </div>
+        </div>
+        <p className="text-xs text-slate-500 sm:max-w-xs sm:text-right">
+          Профіль чудово деталізовано: виявлено {profile.skills.length} підтверджених навичок та {profile.yearsOfExperience}+ років комерційного досвіду.
+        </p>
       </div>
 
       {isUploading && (

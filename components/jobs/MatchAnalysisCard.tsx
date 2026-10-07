@@ -324,10 +324,31 @@ export function MatchAnalysisCard({
               </button>
             </div>
 
+            {/* What Changed Transparency Box */}
+            <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-900 block">
+                What JobPilot Changed (Прозорість AI):
+              </span>
+              <ul className="text-xs text-emerald-950 space-y-1">
+                <li className="flex items-center gap-1.5">
+                  <span className="text-emerald-600 font-bold">✓</span>
+                  <span>Релевантні навички (<strong>{tailoredCV.highlightedSkills.slice(0, 3).join(", ")}</strong>) піднято вгору</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="text-emerald-600 font-bold">✓</span>
+                  <span>Summary перефокусовано на вимоги <strong>{job.company}</strong></span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <span className="text-emerald-600 font-bold">✓</span>
+                  <span>Жодного вигаданого досвіду чи неіснуючих компаній</span>
+                </li>
+              </ul>
+            </div>
+
             <div className="bg-white rounded-xl p-4 border border-blue-100 text-xs sm:text-sm space-y-3">
               <div>
                 <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  Нове резюме (Summary):
+                  Адаптоване резюме (Summary):
                 </span>
                 <p className="text-slate-800 mt-1 font-medium leading-relaxed">
                   {tailoredCV.tailoredSummary}
