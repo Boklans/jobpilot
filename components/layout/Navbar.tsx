@@ -24,7 +24,7 @@ export function Navbar({
 
   return (
     <header className="border-b border-slate-200 bg-white sticky top-0 z-40 shadow-xs">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between h-16 items-center">
           {/* Brand */}
           <div 
