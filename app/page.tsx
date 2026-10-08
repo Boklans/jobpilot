@@ -20,6 +20,7 @@ import {
 } from "@/types";
 import { analyzeJobMatch } from "@/lib/ai/matcher";
 import { smoothScrollTo, scrollIntoCenter } from "@/lib/utils";
+import { translations, Language } from "@/lib/translations";
 import { 
   Sparkles, 
   Briefcase, 
@@ -34,7 +35,7 @@ import {
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
-  const [lang, setLang] = useState<"ua" | "en">("ua");
+  const [lang, setLang] = useState<Language>("ua");
   const [candidates, setCandidates] = useState<CandidateProfile[]>(sampleCandidateProfiles);
   const [activeCandidateId, setActiveCandidateId] = useState<string>(sampleCandidateProfiles[0].id);
   const [applications, setApplications] = useState<ApplicationTrackerItem[]>(initialApplications);
@@ -212,6 +213,9 @@ export default function HomePage() {
     setApplications((prev) => prev.filter((app) => app.id !== id));
   };
 
+  const dt = translations[lang].dashboard;
+  const isEn = lang === "en";
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/60 font-sans">
       <Navbar
@@ -232,27 +236,27 @@ export default function HomePage() {
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Job Search Pulse
+                    {dt.pulseBadge}
                   </span>
                 </div>
 
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Доброго дня, {activeCandidate.fullName.split(" ")[0]} 👋
+                  {dt.greeting}, {activeCandidate.fullName.split(" ")[0]} 👋
                 </h1>
 
                 {/* Live Bullet Insights */}
                 <div className="space-y-1.5 text-xs sm:text-sm text-slate-600">
                   <div className="flex items-center gap-2 font-medium">
                     <span className="text-emerald-600 font-bold">✓</span>
-                    <span><strong className="text-slate-900 font-semibold">{currentAnalyses.filter(a => a.analysis.score >= 85).length} Strong Matches</strong> готові до адаптації</span>
+                    <span><strong className="text-slate-900 font-semibold">{currentAnalyses.filter(a => a.analysis.score >= 85).length} {dt.strongMatches}</strong> {dt.readyToTailor}</span>
                   </div>
                   <div className="flex items-center gap-2 font-medium">
                     <span className="text-purple-600 font-bold">⚡</span>
-                    <span><strong className="text-slate-900 font-semibold">{applications.filter(a => a.status === 'interview').length} компанія</strong> призначила інтерв'ю (Nordic FinTech)</span>
+                    <span><strong className="text-slate-900 font-semibold">{applications.filter(a => a.status === 'interview').length} {isEn ? "companies" : "компанія"}</strong> {dt.interviewsScheduled}</span>
                   </div>
                   <div className="flex items-center gap-2 font-medium">
                     <span className="text-blue-600 font-bold">📊</span>
-                    <span>Твій середній Match Score: <strong className="text-slate-900 font-semibold">
+                    <span>{dt.avgMatchScore}: <strong className="text-slate-900 font-semibold">
                       {Math.round(currentAnalyses.reduce((acc, curr) => acc + curr.analysis.score, 0) / Math.max(currentAnalyses.length, 1))}%
                     </strong></span>
                   </div>
@@ -265,7 +269,7 @@ export default function HomePage() {
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-900 text-white font-bold text-sm hover:bg-blue-600 transition shadow-md active:scale-[0.98]"
                 >
                   <Sparkles className="w-4 h-4 text-blue-400" />
-                  <span>+ Quick Job Match</span>
+                  <span>{dt.quickJobMatch}</span>
                 </button>
               </div>
             </div>
@@ -275,13 +279,13 @@ export default function HomePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <span>Recommended Opportunities</span>
+                    <span>{dt.recommendedTitle}</span>
                     <span className="text-xs bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full border border-blue-200">
                       {currentAnalyses.length}
                     </span>
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500">
-                    Вакансії, де твій профіль має найвищу конверсію на інтерв'ю.
+                    {dt.recommendedSubtitle}
                   </p>
                 </div>
                 {currentAnalyses.length > 0 && (
@@ -289,7 +293,7 @@ export default function HomePage() {
                     onClick={() => setActiveTab("analyze")}
                     className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                   >
-                    Переглянути всі ({currentAnalyses.length}) →
+                    {dt.viewAll} ({currentAnalyses.length}) →
                   </button>
                 )}
               </div>
@@ -337,17 +341,17 @@ export default function HomePage() {
                             ))}
                             {analysis.missingSkills.length > 0 && (
                               <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
-                                <span>⚠ Бракує:</span> {analysis.missingSkills.slice(0, 2).join(", ")}
+                                <span>⚠ {isEn ? "Missing:" : "Бракує:"}</span> {analysis.missingSkills.slice(0, 2).join(", ")}
                               </span>
                             )}
                           </div>
                         </div>
 
-                        {/* Right Apple-style Score + Action */}
+                        {/* Right Score + Action */}
                         <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
                           <div className="text-right">
                             <span className={`text-2xl sm:text-3xl font-black tracking-tight tabular-nums ${
-                              analysis.score >= 85 ? "text-emerald-600" : analysis.score >= 70 ? "text-blue-600" : "text-amber-600"
+                              analysis.score >= 85 ? "text-emerald-600" : analysis.score >= 70 ? "text-blue-600" : analysis.score >= 50 ? "text-amber-600" : "text-rose-600"
                             }`}>
                               {analysis.score}%
                             </span>
@@ -357,7 +361,7 @@ export default function HomePage() {
                           </div>
 
                           <span className="text-xs font-semibold text-blue-600 group-hover:translate-x-0.5 transition hidden sm:inline-flex items-center gap-1">
-                            Breakdown →
+                            {isEn ? "Breakdown →" : "Деталі →"}
                           </span>
                         </div>
                       </div>
@@ -370,9 +374,9 @@ export default function HomePage() {
                   <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
                     <Sparkles className="w-6 h-6" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Поки що немає проаналізованих вакансій</h3>
+                  <h3 className="text-base font-bold text-slate-900">{isEn ? "No analyzed vacancies yet" : "Поки що немає проаналізованих вакансій"}</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Вставте першу вакансію з Djinni, DOU або LinkedIn, щоб згенерувати розбір відповідності та персональні рекомендації.
+                    {dt.noAnalyses}
                   </p>
                   <div className="pt-2">
                     <button
@@ -380,7 +384,7 @@ export default function HomePage() {
                       className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>Проаналізувати вакансію</span>
+                      <span>{isEn ? "Analyze a Job" : "Проаналізувати вакансію"}</span>
                     </button>
                   </div>
                 </div>
@@ -391,16 +395,16 @@ export default function HomePage() {
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Recent Applications</h2>
+                  <h2 className="text-lg font-bold text-slate-900">{isEn ? "Recent Applications" : "Останні заявки"}</h2>
                   <p className="text-xs sm:text-sm text-slate-500">
-                    Статус ваших останніх поданих заявок у трекері.
+                    {isEn ? "Status of your latest tracker applications." : "Статус ваших останніх поданих заявок у трекері."}
                   </p>
                 </div>
                 <button
                   onClick={() => setActiveTab("tracker")}
                   className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                 >
-                  Відкрити трекер ({applications.length}) →
+                  {isEn ? "Open tracker" : "Відкрити трекер"} ({applications.length}) →
                 </button>
               </div>
 
@@ -428,12 +432,12 @@ export default function HomePage() {
         {/* ANALYZE TAB */}
         {activeTab === "analyze" && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <AddJobForm onAnalyze={handleAnalyzeNewJob} isLoading={isAnalyzing} />
+            <AddJobForm onAnalyze={handleAnalyzeNewJob} isLoading={isAnalyzing} lang={lang} />
 
             <div id="analyzed-results-section" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-slate-900">
-                  {lang === "en" ? "Analyzed Vacancies" : "Аналіз вакансій"} ({currentAnalyses.length})
+                  {isEn ? "Analyzed Vacancies" : "Аналіз вакансій"} ({currentAnalyses.length})
                 </h3>
               </div>
               {currentAnalyses.map(({ job, analysis }) => (
@@ -444,6 +448,7 @@ export default function HomePage() {
                   candidate={activeCandidate}
                   onAddToTracker={handleAddToTracker}
                   onDeleteJob={handleDeleteAnalysis}
+                  lang={lang}
                 />
               ))}
             </div>
@@ -457,6 +462,7 @@ export default function HomePage() {
               applications={applications}
               onUpdateStatus={handleUpdateStatus}
               onDeleteApplication={handleDeleteApplication}
+              lang={lang}
             />
           </div>
         )}
@@ -467,6 +473,7 @@ export default function HomePage() {
             <CandidateProfileView
               profile={activeCandidate}
               onUpdateProfile={handleUpdateActiveProfile}
+              lang={lang}
             />
           </div>
         )}

@@ -2,38 +2,43 @@
 
 import React from "react";
 import { ApplicationTrackerItem, ApplicationStatus } from "@/types";
-import { Building, MapPin, Calendar, Trash2, ArrowRight } from "lucide-react";
+import { Building, Trash2 } from "lucide-react";
+import { translations, Language } from "@/lib/translations";
 
 interface TrackerBoardProps {
   applications: ApplicationTrackerItem[];
   onUpdateStatus: (id: string, newStatus: ApplicationStatus) => void;
   onDeleteApplication: (id: string) => void;
+  lang?: Language;
 }
-
-const COLUMNS: { id: ApplicationStatus; title: string; color: string; badge: string }[] = [
-  { id: "saved", title: "Saved / Ready", color: "border-slate-300", badge: "bg-slate-100 text-slate-700" },
-  { id: "applied", title: "Applied", color: "border-blue-400", badge: "bg-blue-100 text-blue-700" },
-  { id: "interview", title: "Interview", color: "border-purple-400", badge: "bg-purple-100 text-purple-700" },
-  { id: "offer", title: "Offer 🎉", color: "border-emerald-400", badge: "bg-emerald-100 text-emerald-800" },
-  { id: "rejected", title: "Rejected", color: "border-rose-300", badge: "bg-rose-100 text-rose-700" },
-];
 
 export function TrackerBoard({
   applications,
   onUpdateStatus,
   onDeleteApplication,
+  lang = "ua",
 }: TrackerBoardProps) {
+  const t = translations[lang].tracker;
+
+  const COLUMNS: { id: ApplicationStatus; title: string; color: string; badge: string }[] = [
+    { id: "saved", title: t.columns.saved, color: "border-slate-300", badge: "bg-slate-100 text-slate-700" },
+    { id: "applied", title: t.columns.applied, color: "border-blue-400", badge: "bg-blue-100 text-blue-700" },
+    { id: "interview", title: t.columns.interview, color: "border-purple-400", badge: "bg-purple-100 text-purple-700" },
+    { id: "offer", title: t.columns.offer, color: "border-emerald-400", badge: "bg-emerald-100 text-emerald-800" },
+    { id: "rejected", title: t.columns.rejected, color: "border-rose-300", badge: "bg-rose-100 text-rose-700" },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Application Pipeline</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t.pipelineTitle}</h2>
           <p className="text-sm text-slate-500">
-            Відслідковуйте статус кожного відгуку від збереження до оферу.
+            {t.pipelineSub}
           </p>
         </div>
         <div className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full">
-          Всього заявок: {applications.length}
+          {t.totalApps} {applications.length}
         </div>
       </div>
 
@@ -99,17 +104,17 @@ export function TrackerBoard({
                         onChange={(e) => onUpdateStatus(app.id, e.target.value as ApplicationStatus)}
                         className="text-[11px] font-medium bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-hidden"
                       >
-                        <option value="saved">Saved</option>
-                        <option value="applied">Applied</option>
-                        <option value="interview">Interview</option>
-                        <option value="offer">Offer</option>
-                        <option value="rejected">Rejected</option>
+                        <option value="saved">{t.columns.saved}</option>
+                        <option value="applied">{t.columns.applied}</option>
+                        <option value="interview">{t.columns.interview}</option>
+                        <option value="offer">{t.columns.offer}</option>
+                        <option value="rejected">{t.columns.rejected}</option>
                       </select>
 
                       <button
                         onClick={() => onDeleteApplication(app.id)}
                         className="text-slate-400 hover:text-rose-600 transition p-1"
-                        title="Видалити з трекера"
+                        title={t.deleteTooltip}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -119,7 +124,7 @@ export function TrackerBoard({
 
                 {colApps.length === 0 && (
                   <div className="h-28 border border-dashed border-slate-200 rounded-xl flex items-center justify-center text-xs text-slate-400">
-                    Немає заявок
+                    {t.emptyCol}
                   </div>
                 )}
               </div>
@@ -130,4 +135,3 @@ export function TrackerBoard({
     </div>
   );
 }
-

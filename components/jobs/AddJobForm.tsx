@@ -1,15 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowRight, CheckCircle2, Bot, Layers } from "lucide-react";
+import { Sparkles, ArrowRight, CheckCircle2, Bot } from "lucide-react";
 import { JobListing } from "@/types";
+import { translations, Language } from "@/lib/translations";
 
 interface AddJobFormProps {
   onAnalyze: (job: JobListing) => void;
   isLoading: boolean;
+  lang?: Language;
 }
 
-export function AddJobForm({ onAnalyze, isLoading }: AddJobFormProps) {
+export function AddJobForm({ onAnalyze, isLoading, lang = "ua" }: AddJobFormProps) {
+  const t = translations[lang].addJob;
   const [inputText, setInputText] = useState("");
   const [timelineStep, setTimelineStep] = useState(0);
   const [isParsingUrl, setIsParsingUrl] = useState(false);
@@ -115,13 +118,13 @@ Key Requirements:
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
             <Bot className="w-4 h-4" />
-            AI Match Engine
+            {t.engineBadge}
           </span>
           <h2 className="text-xl font-extrabold text-slate-900 tracking-tight mt-1">
-            Analyze Any Job in Seconds
+            {t.heading}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Просто вставте опис вакансії або посилання з Djinni, DOU чи LinkedIn. AI сам витягне вимоги та розрахує Match.
+            {t.subheading}
           </p>
         </div>
 
@@ -130,7 +133,7 @@ Key Requirements:
           onClick={handleFillSample}
           className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 transition border border-slate-200 self-start sm:self-auto shrink-0"
         >
-          Вставити приклад (Djinni)
+          {t.sampleBtn}
         </button>
       </div>
 
@@ -138,7 +141,7 @@ Key Requirements:
         <div className="relative">
           <textarea
             rows={5}
-            placeholder="Вставте сюди опис вакансії або посилання (https://jobs.dou.ua/... або https://djinni.co/...)"
+            placeholder={t.placeholder}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             disabled={activeLoading}
@@ -148,7 +151,7 @@ Key Requirements:
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
             <span className="text-[11px] text-slate-400">
-              💡 Автоматично розпізнає назву посади, стек технологій, компанію та зарплату.
+              {t.autoHint}
             </span>
 
             <button
@@ -157,7 +160,7 @@ Key Requirements:
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 text-white font-bold text-xs sm:text-sm hover:bg-blue-600 transition shadow-md active:scale-[0.98] disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4 text-blue-400" />
-              <span>{activeLoading ? (isParsingUrl ? "Завантажую сторінку..." : "Аналізую...") : "Calculate Match Score"}</span>
+              <span>{activeLoading ? (isParsingUrl ? t.fetchingUrlBtn : t.analyzingBtn) : t.calculateBtn}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -169,28 +172,28 @@ Key Requirements:
         <div className="mt-6 p-5 rounded-2xl bg-blue-50/60 border border-blue-200/80 animate-in fade-in space-y-3">
           <span className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-            JobPilot Copilot Execution Pipeline
+            {t.pipelineTitle}
           </span>
 
           <div className="space-y-2 text-xs">
             <div className={`flex items-center gap-2.5 transition-all ${timelineStep >= 1 ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
               {timelineStep >= 1 ? <CheckCircle2 className="w-4 h-4 text-blue-600" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-              <span>1. Екстракція вимог вакансії та технологічного стеку</span>
+              <span>{t.step1}</span>
             </div>
 
             <div className={`flex items-center gap-2.5 transition-all ${timelineStep >= 2 ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
               {timelineStep >= 2 ? <CheckCircle2 className="w-4 h-4 text-blue-600" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-              <span>2. Семантичне звірення з резюме кандидата (досвід, роки, стек)</span>
+              <span>{t.step2}</span>
             </div>
 
             <div className={`flex items-center gap-2.5 transition-all ${timelineStep >= 3 ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
               {timelineStep >= 3 ? <CheckCircle2 className="w-4 h-4 text-blue-600" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-              <span>3. Детекція критичних ATS-фільтрів та зон ризику (Missing gaps)</span>
+              <span>{t.step3}</span>
             </div>
 
             <div className={`flex items-center gap-2.5 transition-all ${timelineStep >= 4 ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
               {timelineStep >= 4 ? <CheckCircle2 className="w-4 h-4 text-emerald-600 font-bold" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-              <span>4. Формулювання фінального вердикту та готовність до адаптації</span>
+              <span>{t.step4}</span>
             </div>
           </div>
         </div>

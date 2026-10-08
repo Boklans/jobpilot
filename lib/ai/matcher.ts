@@ -27,6 +27,17 @@ Location: ${job.location}
 Description:
 ${job.rawDescription}
 
+CRITICAL MATCH SCORING RULES:
+1. PRIMARY TECH STACK ALIGNMENT IS PARAMOUNT:
+- Determine the primary core programming language & framework required by the Job Title and Description (e.g. Node.js, Angular, React, Vue, Python, Java, .NET/C#, PHP, Go, etc.).
+- If the candidate's background is in a fundamentally different primary stack (for example, a .NET/C# engineer applying for a Senior Full-Stack Angular/Node.js job, or a Java developer applying for a Python/Django role):
+  * The score MUST be between 15 and 35.
+  * The recommendation MUST be "low_match".
+  * DO NOT inflate the score based on generic software engineering overlaps (such as Git, Docker, SQL, Agile, OOP, Microservices, or Seniority).
+  * In summary and experienceGaps, explicitly state: "Критична невідповідність основного стеку: Вакансія вимагає [Job Stack], тоді як профіль кандидата сфокусований на [Candidate Stack]."
+2. High Match (80-100%) requires direct compatibility with the primary languages and frameworks.
+3. Partial Match (50-75%) is ONLY for roles within the same or closely related ecosystem.
+
 Return strict JSON:
 {
   "score": number (0-100),
@@ -54,7 +65,7 @@ Return strict JSON:
           messages: [
             {
               role: "system",
-              content: `You are an elite Tech Recruiter & ATS Analyzer. Compare Candidate Profile with Job Description without inventing fake candidate experience.`,
+              content: `You are an elite Tech Recruiter & ATS Analyzer. Strictly evaluate primary stack compatibility. Do not invent fake candidate experience.`,
             },
             {
               role: "user",
@@ -113,6 +124,41 @@ Return strict JSON:
   // Fallback intelligent analyzer (for instant demo / offline test)
   const jobTextLower = job.rawDescription.toLowerCase() + " " + job.title.toLowerCase();
   const cvSkills = profile.skills.map((s) => s.toLowerCase());
+  const cvText = (profile.skills.join(" ") + " " + profile.title + " " + profile.summary).toLowerCase();
+
+  // Core Tech Ecosystem detection
+  const STACK_GROUPS: { name: string; keywords: string[] }[] = [
+    { name: "Node.js", keywords: ["node.js", "nodejs", "express", "nestjs"] },
+    { name: "Angular", keywords: ["angular", "angularjs", "rxjs"] },
+    { name: "React", keywords: ["react", "react.js", "next.js"] },
+    { name: "Vue", keywords: ["vue", "vue.js", "nuxt"] },
+    { name: ".NET / C#", keywords: ["c#", ".net", "dotnet", "asp.net", "ef core"] },
+    { name: "Java", keywords: ["java", "spring", "spring boot"] },
+    { name: "Python", keywords: ["python", "django", "fastapi", "flask"] },
+    { name: "PHP", keywords: ["php", "laravel", "symfony"] },
+    { name: "Go", keywords: ["golang", "go language"] },
+    { name: "Mobile", keywords: ["swift", "ios", "kotlin", "android", "flutter"] },
+    { name: "QA", keywords: ["qa", "quality assurance", "test automation", "selenium", "playwright"] },
+  ];
+
+  // Check required core stacks in job title and description
+  const requiredCoreStacks = STACK_GROUPS.filter((group) =>
+    group.keywords.some((kw) => job.title.toLowerCase().includes(kw) || jobTextLower.includes(kw))
+  );
+
+  const matchedCoreStacks = requiredCoreStacks.filter((group) =>
+    group.keywords.some((kw) => cvText.includes(kw))
+  );
+
+  const missingCoreStacks = requiredCoreStacks.filter(
+    (group) => !matchedCoreStacks.includes(group)
+  );
+
+  // If job demands specific core stacks (e.g. Angular, Node.js) and candidate has NONE of them:
+  const isSevereStackMismatch =
+    requiredCoreStacks.length > 0 &&
+    matchedCoreStacks.length === 0 &&
+    missingCoreStacks.length > 0;
 
   // Detect matching skills
   const matched = profile.skills.filter((s) => jobTextLower.includes(s.toLowerCase()));
@@ -128,35 +174,66 @@ Return strict JSON:
     (kw) => jobTextLower.includes(kw) && !cvSkills.some((s) => s.includes(kw))
   );
 
-  const matchRatio = matched.length / Math.max(matched.length + missing.length, 1);
-  const calculatedScore = Math.min(
-    Math.max(Math.round(matchRatio * 100 + (profile.yearsOfExperience >= 5 ? 15 : 5)), 45),
-    96
-  );
+  // Add missing core stack names to missing list
+  missingCoreStacks.forEach((stack) => {
+    if (!missing.includes(stack.name)) {
+      missing.unshift(stack.name);
+    }
+  });
 
-  let recommendation: MatchAnalysisResult["recommendation"] = "good_match";
-  if (calculatedScore >= 85) recommendation = "strong_match";
-  else if (calculatedScore >= 70) recommendation = "good_match";
-  else if (calculatedScore >= 50) recommendation = "partial_match";
-  else recommendation = "low_match";
+  let calculatedScore: number;
+  let recommendation: MatchAnalysisResult["recommendation"];
+  let summaryText: string;
+  let experienceGaps: string[];
+
+  if (isSevereStackMismatch) {
+    // Critical stack mismatch (e.g. .NET dev applying for Angular/Node.js)
+    calculatedScore = Math.floor(Math.random() * 8) + 20; // 20 - 27%
+    recommendation = "low_match";
+    const reqNames = missingCoreStacks.map((s) => s.name).join(", ");
+    summaryText = `Критична невідповідність основного технологічного стеку: Вакансія вимагає спеціалізацію у ${reqNames}, тоді як ваш профіль сфокусований на ${profile.title}. Навіть за наявності сильних загальних навичок архітектури та DevOps, проходження первинного технічного відбору малоймовірне.`;
+    experienceGaps = [
+      `Вакансія вимагає комерційний досвід у ${reqNames}. У вашому CV цей стек відсутній.`,
+      `Профіль кандидата (${profile.title}) не відповідає основному напрямку позиції (${job.title}).`
+    ];
+  } else {
+    const matchRatio = matched.length / Math.max(matched.length + missing.length, 1);
+    calculatedScore = Math.min(
+      Math.max(Math.round(matchRatio * 100 + (profile.yearsOfExperience >= 5 ? 15 : 5)), 45),
+      96
+    );
+
+    if (calculatedScore >= 85) recommendation = "strong_match";
+    else if (calculatedScore >= 70) recommendation = "good_match";
+    else if (calculatedScore >= 50) recommendation = "partial_match";
+    else recommendation = "low_match";
+
+    summaryText = `Кандидат має гарний профіль для посади ${job.title}. Основний стек збігається, проте варто підкреслити релевантні проєкти під вимоги ${job.company}.`;
+    experienceGaps =
+      missing.length > 0
+        ? [`Вимоги передбачають знання: ${missing.slice(0, 2).join(", ")}. У CV це прямо не вказано.`]
+        : ["Критичних розривів у досвіді не виявлено."];
+  }
 
   return {
     jobId: job.id,
     profileId: profile.id,
     score: calculatedScore,
     recommendation,
-    summary: `Кандидат має сильний профіль для посади ${job.title}. Основний стек збігається, проте варто підкреслити релевантні проєкти під вимоги ${job.company}.`,
+    summary: summaryText,
     strengths: matched.slice(0, 6).map((s) => `Підтверджений досвід: ${s}`),
-    missingSkills: missing.slice(0, 4),
-    experienceGaps:
-      missing.length > 0
-        ? [`Вимоги передбачають знання: ${missing.slice(0, 2).join(", ")}. У CV це прямо не вказано.`]
-        : ["Критичних розривів у досвіді не виявлено."],
-    tailoringTips: [
-      `Підняти нагору блок Summary з фокусом на ${job.title}`,
-      `Підкреслити конкретні метрики та результати у найбільш релевантних проєктах`,
-      `Узгодити термінологію (ATS Keywords) з оригінальним описом вакансії`,
-    ],
+    missingSkills: missing.slice(0, 5),
+    experienceGaps,
+    tailoringTips: isSevereStackMismatch
+      ? [
+          `Вакансія вимагає інший стек (${missingCoreStacks.map((s) => s.name).join(", ")}). Рекомендується шукати позиції під ваш профіль ${profile.title}.`,
+          `Якщо у вас є пет-проєкти або комерційний досвід з ${missingCoreStacks.map((s) => s.name).join(", ")}, обов'язково додайте їх до профілю.`,
+        ]
+      : [
+          `Підняти нагору блок Summary з фокусом на ${job.title}`,
+          `Підкреслити конкретні метрики та результати у найбільш релевантних проєктах`,
+          `Узгодити термінологію (ATS Keywords) з оригінальним описом вакансії`,
+        ],
     interviewTips: [
       `Будьте готові до питань про архітектуру та вибір технологічного стеку`,
       `Підготуйте приклади вирішення складних технічних проблем або оптимізації швидкодії`,

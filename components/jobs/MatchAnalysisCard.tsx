@@ -28,7 +28,8 @@ import {
 } from "lucide-react";
 import { generateTailoredCV, generateCoverLetter } from "@/lib/ai/matcher";
 import { TailoredCVModal } from "@/components/cv/TailoredCVModal";
-import { smoothScrollTo, scrollIntoCenter } from "@/lib/utils";
+import { scrollIntoCenter } from "@/lib/utils";
+import { translations, Language } from "@/lib/translations";
 
 interface MatchAnalysisCardProps {
   job: JobListing;
@@ -36,6 +37,7 @@ interface MatchAnalysisCardProps {
   candidate: CandidateProfile;
   onAddToTracker: (job: JobListing, score: number) => void;
   onDeleteJob?: (jobId: string) => void;
+  lang?: Language;
 }
 
 export function MatchAnalysisCard({ 
@@ -43,31 +45,28 @@ export function MatchAnalysisCard({
   analysis, 
   candidate, 
   onAddToTracker,
-  onDeleteJob
+  onDeleteJob,
+  lang = "ua"
 }: MatchAnalysisCardProps) {
+  const t = translations[lang].matchCard;
   const tailoredCVRef = useRef<HTMLDivElement>(null);
   const coverLetterRef = useRef<HTMLDivElement>(null);
   const [tailoredCV, setTailoredCV] = useState<TailoredCVResult | null>(null);
   const [coverLetter, setCoverLetter] = useState<CoverLetterResult | null>(null);
   const [isGeneratingCV, setIsGeneratingCV] = useState(false);
   const [isGeneratingCL, setIsGeneratingCL] = useState(false);
-  const [clLang, setClLang] = useState<"en" | "ua">("en");
+  const [clLang, setClLang] = useState<"en" | "ua">(lang === "en" ? "en" : "ua");
   const [copiedCL, setCopiedCL] = useState(false);
   const [isAddedToTracker, setIsAddedToTracker] = useState(false);
   const [showFullJob, setShowFullJob] = useState(false);
   const [showCVModal, setShowCVModal] = useState(false);
 
-  const getScoreColor = (score: number) => {
-    if (score >= 85) return "text-emerald-700 bg-emerald-50 border-emerald-300 ring-emerald-500/20";
-    if (score >= 70) return "text-blue-700 bg-blue-50 border-blue-300 ring-blue-500/20";
-    if (score >= 50) return "text-amber-700 bg-amber-50 border-amber-300 ring-amber-500/20";
-    return "text-rose-700 bg-rose-50 border-rose-300 ring-rose-500/20";
-  };
+  const isEn = lang === "en";
 
   const handleTailor = async () => {
     setIsGeneratingCV(true);
     try {
-      const res = await generateTailoredCV(candidate, job, analysis, "en");
+      const res = await generateTailoredCV(candidate, job, analysis, lang);
       setTailoredCV(res);
       setTimeout(() => {
         scrollIntoCenter(tailoredCVRef.current);
@@ -107,6 +106,20 @@ export function MatchAnalysisCard({
     setIsAddedToTracker(true);
   };
 
+  const getVerdictText = (score: number) => {
+    if (score >= 85) return isEn ? "✓ Worth applying (Strong match)" : "✓ Рекомендовано подаватись (Високий збіг)";
+    if (score >= 70) return isEn ? "⚡ Worth applying (Tailor CV recommended)" : "⚡ Рекомендовано подаватись (Адаптуйте резюме)";
+    if (score >= 50) return isEn ? "⚠ Partial match (Gaps exist)" : "⚠ Помірна відповідність (Є прогалини)";
+    return isEn ? "✕ Low match (Core stack mismatch)" : "✕ Низька відповідність (Невідповідність стеку)";
+  };
+
+  const getScreeningChances = (score: number) => {
+    if (score >= 85) return isEn ? "High" : "Високі";
+    if (score >= 70) return isEn ? "Moderate" : "Помірні";
+    if (score >= 50) return isEn ? "Low" : "Низькі";
+    return isEn ? "Very low" : "Дуже низькі";
+  };
+
   return (
     <div id={`job-analysis-${job.id}`} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden mb-8 transition-all hover:shadow-md scroll-mt-24">
       {/* Header section */}
@@ -115,7 +128,7 @@ export function MatchAnalysisCard({
           <div className="space-y-1.5">
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                Job Opportunity
+                {t.jobOpportunity}
               </span>
               {job.sourceUrl && (
                 <a 
@@ -124,17 +137,17 @@ export function MatchAnalysisCard({
                   rel="noreferrer" 
                   className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 gap-1 font-medium"
                 >
-                  Відкрити оригінал <ExternalLink className="w-3 h-3" />
+                  {t.openOriginal} <ExternalLink className="w-3 h-3" />
                 </a>
               )}
               {onDeleteJob && (
                 <button
                   onClick={() => onDeleteJob(job.id)}
                   className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-rose-600 px-2 py-0.5 rounded-md hover:bg-rose-50 transition border border-transparent hover:border-rose-200"
-                  title="Видалити вакансію з аналізу"
+                  title={isEn ? "Remove vacancy" : "Видалити вакансію з аналізу"}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Видалити</span>
+                  <span>{t.deleteJob}</span>
                 </button>
               )}
             </div>
@@ -159,11 +172,11 @@ export function MatchAnalysisCard({
             </div>
           </div>
 
-          {/* Premium Apple-style Match Score Typography */}
+          {/* Premium Score Typography */}
           <div className="flex items-baseline md:flex-col md:items-end justify-between sm:self-start md:self-auto gap-1 bg-slate-50/80 px-5 py-3 rounded-2xl border border-slate-200/60">
             <div className="flex items-baseline gap-1">
               <span className={`text-4xl sm:text-5xl font-black tracking-tighter tabular-nums ${
-                analysis.score >= 85 ? "text-emerald-600" : analysis.score >= 70 ? "text-blue-600" : "text-amber-600"
+                analysis.score >= 85 ? "text-emerald-600" : analysis.score >= 70 ? "text-blue-600" : analysis.score >= 50 ? "text-amber-600" : "text-rose-600"
               }`}>
                 {analysis.score}
               </span>
@@ -178,7 +191,7 @@ export function MatchAnalysisCard({
 
       {/* Main Analysis Body */}
       <div className="p-6 sm:p-7 space-y-6">
-        {/* Core Verdict & Biggest Concern Box */}
+        {/* Core Verdict Box */}
         <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/70 pb-3.5">
             <div className="flex items-center gap-2">
@@ -190,24 +203,29 @@ export function MatchAnalysisCard({
                   ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                   : analysis.score >= 70
                   ? "bg-blue-100 text-blue-800 border-blue-300"
-                  : "bg-amber-100 text-amber-800 border-amber-300"
+                  : analysis.score >= 50
+                  ? "bg-amber-100 text-amber-800 border-amber-300"
+                  : "bg-rose-100 text-rose-800 border-rose-300"
               }`}>
-                {analysis.score >= 85 ? "✓ Worth applying (Strong match)" : analysis.score >= 70 ? "⚡ Worth applying (Tailor CV recommended)" : "⚠ High competition risk"}
+                {getVerdictText(analysis.score)}
               </span>
             </div>
             <span className="text-xs text-slate-500 font-medium">
-              Шанси пройти скринінг: <strong className="text-slate-800">{analysis.score >= 85 ? "Високі" : analysis.score >= 70 ? "Помірні" : "Низькі"}</strong>
+              {isEn ? "Screening pass rate: " : "Шанси пройти скринінг: "}
+              <strong className="text-slate-800">{getScreeningChances(analysis.score)}</strong>
             </span>
           </div>
 
-          {/* Biggest Concern */}
+          {/* Critical Gaps / Concerns */}
           {analysis.missingSkills.length > 0 && (
             <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 block mb-1">
-                ⚠️ Biggest Concern (Головний ризик відмови):
+                ⚠️ {isEn ? "Primary Risk Factor:" : "Головний ризик відмови (Biggest Concern):"}
               </span>
               <p className="text-xs sm:text-sm text-amber-950 leading-relaxed font-normal">
-                {analysis.experienceGaps[0] || `Вакансія вимагає досвід з ${analysis.missingSkills.slice(0, 2).join(", ")}, що недостатньо підтверджено у вашому поточному резюме.`}
+                {analysis.experienceGaps[0] || (isEn 
+                  ? `Vacancy requires experience in ${analysis.missingSkills.slice(0, 2).join(", ")}, which is missing from your profile.` 
+                  : `Вакансія вимагає досвід з ${analysis.missingSkills.slice(0, 2).join(", ")}, що недостатньо підтверджено у вашому поточному резюме.`)}
               </p>
             </div>
           )}
@@ -224,10 +242,10 @@ export function MatchAnalysisCard({
             <div className="flex items-center justify-between mb-3.5 text-emerald-800 font-bold text-xs uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
-                Why You Match
+                {t.strengthsTitle}
               </span>
               <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
-                {analysis.strengths.length} пунктів
+                {analysis.strengths.length} {isEn ? "points" : "пунктів"}
               </span>
             </div>
             <ul className="space-y-2">
@@ -245,10 +263,10 @@ export function MatchAnalysisCard({
             <div className="flex items-center justify-between mb-3.5 text-amber-800 font-bold text-xs uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
-                What's Missing
+                {t.missingSkillsTitle}
               </span>
               <span className="text-[11px] font-semibold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-                {analysis.missingSkills.length} навичок
+                {analysis.missingSkills.length} {t.skillsCount}
               </span>
             </div>
             {analysis.missingSkills.length > 0 ? (
@@ -264,11 +282,11 @@ export function MatchAnalysisCard({
                   ))}
                 </div>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Ці вимоги шукатиме ATS або рекрутер на першому скринінгу.
+                  {t.missingSkillsSub}
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-slate-500">Критичних прогалин у навичках не виявлено.</p>
+              <p className="text-xs text-slate-500">{t.noGaps}</p>
             )}
           </div>
         </div>
@@ -281,7 +299,7 @@ export function MatchAnalysisCard({
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition shadow-md shadow-blue-600/20 active:scale-[0.98] disabled:opacity-50"
           >
             <Sparkles className="w-4 h-4" />
-            <span>{isGeneratingCV ? "Адаптую резюме..." : "Tailor My CV"}</span>
+            <span>{isGeneratingCV ? t.tailoringCv : t.tailorCvBtn}</span>
           </button>
 
           <button
@@ -290,7 +308,7 @@ export function MatchAnalysisCard({
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition active:scale-[0.98] disabled:opacity-50"
           >
             <Mail className="w-4 h-4" />
-            <span>{isGeneratingCL ? "Пишу..." : "Write Cover Letter"}</span>
+            <span>{isGeneratingCL ? t.writingCl : t.writeClBtn}</span>
           </button>
 
           <button
@@ -305,12 +323,12 @@ export function MatchAnalysisCard({
             {isAddedToTracker ? (
               <>
                 <Check className="w-4 h-4 text-emerald-600" />
-                <span>Додано в Tracker</span>
+                <span>{t.trackedBtn}</span>
               </>
             ) : (
               <>
                 <BookmarkPlus className="w-4 h-4 text-slate-500" />
-                <span>Track Application</span>
+                <span>{t.trackBtn}</span>
               </>
             )}
           </button>
@@ -319,7 +337,7 @@ export function MatchAnalysisCard({
             onClick={() => setShowFullJob(!showFullJob)}
             className="text-xs text-slate-400 hover:text-slate-700 ml-auto inline-flex items-center gap-1 py-1"
           >
-            {showFullJob ? "Сховати опис" : "Повний опис вакансії"}
+            {showFullJob ? t.hideDescription : t.fullDescription}
             {showFullJob ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
@@ -337,7 +355,7 @@ export function MatchAnalysisCard({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
                 <FileEdit className="w-4 h-4 text-blue-600" />
-                <span>Адаптоване резюме під {job.company}</span>
+                <span>{t.tailoredCvTitle} {job.company}</span>
                 <span className="text-[11px] font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md">
                   ATS-Optimized
                 </span>
@@ -347,27 +365,27 @@ export function MatchAnalysisCard({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition shadow-2xs self-start sm:self-auto"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Відкрити та зберегти PDF</span>
+                <span>{t.openPdfModal}</span>
               </button>
             </div>
 
             {/* What Changed Transparency Box */}
             <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-900 block">
-                What JobPilot Changed (Прозорість AI):
+                {t.transparencyTitle}
               </span>
               <ul className="text-xs text-emerald-950 space-y-1">
                 <li className="flex items-center gap-1.5">
                   <span className="text-emerald-600 font-bold">✓</span>
-                  <span>Релевантні навички (<strong>{tailoredCV.highlightedSkills.slice(0, 3).join(", ")}</strong>) піднято вгору</span>
+                  <span>{t.change1} (<strong>{tailoredCV.highlightedSkills.slice(0, 3).join(", ")}</strong>)</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="text-emerald-600 font-bold">✓</span>
-                  <span>Summary перефокусовано на вимоги <strong>{job.company}</strong></span>
+                  <span>{t.change2} <strong>{job.company}</strong></span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="text-emerald-600 font-bold">✓</span>
-                  <span>Жодного вигаданого досвіду чи неіснуючих компаній</span>
+                  <span>{t.change3}</span>
                 </li>
               </ul>
             </div>
@@ -375,7 +393,7 @@ export function MatchAnalysisCard({
             <div className="bg-white rounded-xl p-4 border border-blue-100 text-xs sm:text-sm space-y-3">
               <div>
                 <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  Адаптоване резюме (Summary):
+                  {t.summaryBlock}
                 </span>
                 <p className="text-slate-800 mt-1 font-medium leading-relaxed">
                   {tailoredCV.tailoredSummary}
@@ -384,7 +402,7 @@ export function MatchAnalysisCard({
 
               <div>
                 <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  Пріоритетні навички (піднято нагору):
+                  {t.skillsBlock}
                 </span>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {tailoredCV.highlightedSkills.map((sk, i) => (
@@ -397,7 +415,7 @@ export function MatchAnalysisCard({
 
               <div>
                 <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  Адаптовані формулювання досвіду:
+                  {t.expBlock}
                 </span>
                 <div className="space-y-2 mt-2">
                   {tailoredCV.optimizedExperiences.slice(0, 1).map((exp, i) => (
@@ -422,7 +440,7 @@ export function MatchAnalysisCard({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
                 <Mail className="w-4 h-4 text-blue-600" />
-                <span>Супровідний лист (Cover Letter)</span>
+                <span>{t.coverLetterTitle}</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -450,32 +468,23 @@ export function MatchAnalysisCard({
 
                 <button
                   onClick={handleCopyCL}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition shadow-2xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-100 transition shadow-2xs"
                 >
-                  {copiedCL ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Скопійовано!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Скопіювати</span>
-                    </>
-                  )}
+                  {copiedCL ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedCL ? t.copied : t.copyLetter}</span>
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-4 border border-slate-200 text-xs sm:text-sm text-slate-800 whitespace-pre-line leading-relaxed font-sans">
-              {isGeneratingCL ? "Генерую супровідний лист..." : coverLetter.content}
+            <div className="bg-white p-5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 whitespace-pre-line leading-relaxed font-sans shadow-2xs">
+              {coverLetter.content}
             </div>
           </div>
         )}
       </div>
 
-      {/* Printable Tailored CV Modal */}
-      {tailoredCV && (
+      {/* Tailored CV Modal */}
+      {showCVModal && tailoredCV && (
         <TailoredCVModal
           isOpen={showCVModal}
           onClose={() => setShowCVModal(false)}
@@ -487,4 +496,3 @@ export function MatchAnalysisCard({
     </div>
   );
 }
-
