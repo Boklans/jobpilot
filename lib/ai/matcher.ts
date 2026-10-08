@@ -304,29 +304,94 @@ Analysis: ${JSON.stringify(analysis)}`;
     }
   }
 
-  return {
-    jobId: job.id,
-    tailoredSummary: isEn
-      ? `Accomplished ${profile.title} with ${profile.yearsOfExperience}+ years of production experience building high-scale distributed systems. Focused on resilient architecture, clean code practices, and high-throughput backend services.`
-      : `Досвідчений ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду в розробці високонавантажених сервісів. Сфокусований на надійній архітектурі, чистій кодовій базі та високій продуктивності систем.`,
-    highlightedSkills: [
-      ...new Set([
-        ...profile.skills,
-        ...analysis.strengths.map((s) => s.replace("Підтверджений досвід: ", "")),
-      ]),
-    ].slice(0, 10),
-    optimizedExperiences: profile.experiences.map((exp) => ({
+  // Intelligent Domain-Aware Tailoring Engine
+  const jobTextLower = (job.rawDescription + " " + job.title + " " + job.company).toLowerCase();
+
+  // Detect vacancy domain focus
+  const isFintech = /bank|fintech|financial|payment|transaction|фінанс|платіж|банк|кредит|lime|privat/i.test(jobTextLower);
+  const isCloudDevOps = /aws|azure|cloud|docker|kubernetes|ci\/cd|devops|terraform|microservice|хмар/i.test(jobTextLower);
+  const isDatabaseHeavy = /sql|mssql|postgresql|database|оптимізац|stored procedure|query|индекс|індекс|high-load|високонавантаж/i.test(jobTextLower);
+  const isEnterprise = /enterprise|product|saas|murano|crm|erp|b2b|architecture|архітектур/i.test(jobTextLower);
+
+  // 1. Dynamic Tailored Summary targeted at this job's domain
+  let tailoredSummaryText: string;
+  if (isFintech) {
+    tailoredSummaryText = isEn
+      ? `Accomplished ${profile.title} with ${profile.yearsOfExperience}+ years of production experience in high-scale enterprise and financial transaction systems. Specialized in resilient ASP.NET Core microservices, mission-critical business logic, and high-throughput data processing with stringent security and reliability standards.`
+      : `Досвідчений ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду в розробці фінансових систем та транзакційних сервісів. Спеціалізується на мікросервісах на базі ASP.NET Core, високонадійній бізнес-логіці та оптимізації баз даних під високі навантаження.`;
+  } else if (isCloudDevOps) {
+    tailoredSummaryText = isEn
+      ? `Senior ${profile.title} with ${profile.yearsOfExperience}+ years of expertise architecting cloud-native distributed backends and scalable web APIs. Deep proficiency across modern .NET Core, containerized infrastructure (Docker/Kubernetes), and event-driven microservices designed for 99.9% availability.`
+      : `Провідний ${profile.title} із ${profile.yearsOfExperience}+ роками досвіду побудови хмарних розподілених систем і масштабованих web API. Експертиза в .NET Core, контейнеризації (Docker/Kubernetes) та асинхронній мікросервісній архітектурі, орієнтованій на високу відмовостійкість.`;
+  } else if (isEnterprise) {
+    tailoredSummaryText = isEn
+      ? `Seasoned ${profile.title} with ${profile.yearsOfExperience}+ years of full-lifecycle software engineering experience across enterprise SaaS and product platforms. Strong focus on clean architecture, domain-driven design, RESTful API design, and rapid agile delivery.`
+      : `Досвідчений ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду повного циклу розробки корпоративних SaaS та продуктових систем. Сфокусований на Clean Architecture, Domain-Driven Design, проектуванні RESTful API та командній розробці за Agile.`;
+  } else {
+    tailoredSummaryText = isEn
+      ? `Versatile ${profile.title} with ${profile.yearsOfExperience}+ years of experience designing and scaling production software systems aligned with the requirements for ${job.title}. Proven track record in backend performance tuning, robust system integration, and engineering excellence.`
+      : `Універсальний ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду розробки та масштабування систем під вимоги посади ${job.title}. Підтверджений досвід оптимізації швидкодії, інтеграції сервісів та впровадження інженерних стандартів.`;
+  }
+
+  // 2. Re-prioritize skills: matching job skills go directly to the front!
+  const matchedSkills = profile.skills.filter((s) => jobTextLower.includes(s.toLowerCase()));
+  const otherSkills = profile.skills.filter((s) => !matchedSkills.includes(s));
+  const prioritizedSkills = [...matchedSkills, ...otherSkills].slice(0, 10);
+
+  // 3. Intelligently adapt experience bullet points for this specific role
+  const optimizedExperiences = profile.experiences.map((exp, idx) => {
+    const originalBullets = Array.isArray(exp.description) ? exp.description : [];
+    const adaptedBullets = originalBullets.map((bullet) => {
+      let b = bullet.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim();
+
+      // If job is fintech/database and this bullet touches DB:
+      if ((isFintech || isDatabaseHeavy) && /sql|баз|database|запит|даних|query/i.test(b)) {
+        b = isEn
+          ? "Engineered and optimized high-performance database interactions and stored procedures in MSSQL/PostgreSQL, reducing query latency by 35% and ensuring strict ACID transaction reliability."
+          : "Спроектував та оптимізував запити і збережені процедури в MSSQL/PostgreSQL, зменшивши затримку виконання на 35% та забезпечивши сувору транзакційну надійність даних.";
+      }
+      // If job is cloud/microservices and bullet touches services/api:
+      else if (isCloudDevOps && /api|сервіс|service|microservice|rest|хмар/i.test(b)) {
+        b = isEn
+          ? "Architected and deployed resilient ASP.NET Core microservices, implementing robust RESTful endpoints, asynchronous messaging, and containerized deployment with Docker."
+          : "Спроектував та розгорнув мікросервіси на базі ASP.NET Core, реалізувавши надійні RESTful ендпоінти, асинхронний обмін повідомленнями та контейнеризацію в Docker.";
+      }
+      // If job is enterprise/architecture and bullet touches architecture/code:
+      else if (isEnterprise && /архітектур|clean|код|structure|проект/i.test(b)) {
+        b = isEn
+          ? "Established Clean Architecture standards and Domain-Driven Design principles, enhancing code maintainability and test coverage across distributed backend services."
+          : "Впровадив стандарти Clean Architecture та принципи Domain-Driven Design, підвищивши підтримуваність кодової бази та покриття тестами у розподілених сервісах.";
+      }
+
+      return b;
+    });
+
+    return {
       company: exp.company,
       position: exp.position,
       period: exp.period,
-      bullets: exp.description.map((bullet) =>
-        bullet.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim()
-      ),
-    })),
-    atsKeywordsAdded:
-      analysis.missingSkills.length > 0
-        ? analysis.missingSkills.slice(0, 3)
-        : ["Clean Architecture", "Performance Optimization", "High Scalability"],
+      bullets: adaptedBullets,
+    };
+  });
+
+  // 4. Targeted ATS Keywords derived from this specific vacancy
+  const atsKeywordsAdded = analysis.strengths
+    .map((s) => s.replace("Підтверджений досвід: ", "").trim())
+    .filter(Boolean)
+    .slice(0, 4);
+
+  if (atsKeywordsAdded.length === 0) {
+    if (isFintech) atsKeywordsAdded.push("Financial Transactions", "ACID Compliance", "High Throughput");
+    else if (isCloudDevOps) atsKeywordsAdded.push("Cloud Infrastructure", "Docker", "Microservices");
+    else atsKeywordsAdded.push("Clean Architecture", "RESTful APIs", "System Scalability");
+  }
+
+  return {
+    jobId: job.id,
+    tailoredSummary: tailoredSummaryText,
+    highlightedSkills: prioritizedSkills,
+    optimizedExperiences,
+    atsKeywordsAdded,
   };
 }
 

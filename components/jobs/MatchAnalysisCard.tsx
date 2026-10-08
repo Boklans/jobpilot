@@ -370,20 +370,33 @@ export function MatchAnalysisCard({
             </div>
 
             {/* What Changed Transparency Box */}
-            <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 space-y-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-900 block">
-                {t.transparencyTitle}
-              </span>
-              <ul className="text-xs text-emerald-950 space-y-1">
-                <li className="flex items-center gap-1.5">
+            <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  {t.transparencyTitle}
+                </span>
+                {tailoredCV.atsKeywordsAdded.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">{isEn ? "Targeted ATS Keywords:" : "Інтегровані ATS-ключі:"}</span>
+                    {tailoredCV.atsKeywordsAdded.map((kw, i) => (
+                      <span key={i} className="text-[10px] font-bold bg-white text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-300">
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <ul className="text-xs text-emerald-950 space-y-1.5">
+                <li className="flex items-center gap-2">
                   <span className="text-emerald-600 font-bold">✓</span>
-                  <span>{t.change1} (<strong>{tailoredCV.highlightedSkills.slice(0, 3).join(", ")}</strong>)</span>
+                  <span>{t.change1}: <strong className="text-emerald-900">{tailoredCV.highlightedSkills.slice(0, 3).join(", ")}</strong></span>
                 </li>
-                <li className="flex items-center gap-1.5">
+                <li className="flex items-center gap-2">
                   <span className="text-emerald-600 font-bold">✓</span>
-                  <span>{t.change2} <strong>{job.company}</strong></span>
+                  <span>{t.change2} <strong>{job.company}</strong> ({job.title})</span>
                 </li>
-                <li className="flex items-center gap-1.5">
+                <li className="flex items-center gap-2">
                   <span className="text-emerald-600 font-bold">✓</span>
                   <span>{t.change3}</span>
                 </li>
