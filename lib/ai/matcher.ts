@@ -1,4 +1,4 @@
-import { CandidateProfile, JobListing, MatchAnalysisResult, TailoredCVResult, CoverLetterResult, CoverLetterLength } from "@/types";
+import { CandidateProfile, JobListing, MatchAnalysisResult, TailoredCVResult, CoverLetterResult, CoverLetterLength, InterviewQuestionItem } from "@/types";
 import { callGeminiJson } from "@/lib/ai/gemini";
 
 /**
@@ -89,6 +89,7 @@ Return strict JSON:
           experienceGaps: parsed.experienceGaps || [],
           tailoringTips: parsed.tailoringTips || [],
           interviewTips: parsed.interviewTips || [],
+          interviewQuestions: parsed.interviewQuestions || generateInterviewQuestions(profile, job),
           calculatedAt: new Date().toISOString(),
         };
       }
@@ -113,6 +114,7 @@ Return strict JSON:
           experienceGaps: parsed.experienceGaps || [],
           tailoringTips: parsed.tailoringTips || [],
           interviewTips: parsed.interviewTips || [],
+          interviewQuestions: parsed.interviewQuestions || generateInterviewQuestions(profile, job),
           calculatedAt: new Date().toISOString(),
         };
       }
@@ -238,8 +240,247 @@ Return strict JSON:
       `Будьте готові до питань про архітектуру та вибір технологічного стеку`,
       `Підготуйте приклади вирішення складних технічних проблем або оптимізації швидкодії`,
     ],
+    interviewQuestions: generateInterviewQuestions(profile, job),
     calculatedAt: new Date().toISOString(),
   };
+}
+
+export function generateInterviewQuestions(
+  profile: CandidateProfile,
+  job: JobListing,
+  isEn: boolean = false
+): InterviewQuestionItem[] {
+  const jobTextLower = (job.rawDescription + " " + job.title + " " + job.company).toLowerCase();
+
+  const isFintech = /bank|fintech|financial|payment|transaction|фінанс|платіж|банк|кредит|lime|privat/i.test(jobTextLower);
+  const isCloudDevOps = /aws|azure|cloud|docker|kubernetes|k8s|ci\/cd|devops|terraform|microservice|хмар/i.test(jobTextLower);
+
+  if (isFintech) {
+    if (isEn) {
+      return [
+        {
+          id: "iq-fin-1",
+          category: "architecture",
+          question: "How do you guarantee strict transaction consistency (ACID) and idempotency across high-throughput payment pipelines?",
+          context: `${job.company} operates financial transaction workflows where duplicate charges or dirty reads are catastrophic.`,
+          talkingPoints: [
+            "Explain transaction isolation levels (Read Committed Snapshot, Serializable) and concurrency trade-offs.",
+            "Discuss Idempotency Keys stored with distributed locks (Redis/PostgreSQL) to avoid duplicate payments.",
+            "Mention Transaction Outbox Pattern for reliable event publishing without two-phase commit."
+          ]
+        },
+        {
+          id: "iq-fin-2",
+          category: "deep_tech",
+          question: "What systematic methodology do you use to diagnose and eliminate query execution bottlenecks and deadlocks?",
+          context: `Financial ledgers experience heavy concurrent updates leading to table contention and lock escalation.`,
+          talkingPoints: [
+            "Profiling using EXPLAIN ANALYZE or SQL Server Execution Plans to detect full table scans and implicit conversions.",
+            "Designing targeted non-clustered composite indexes with INCLUDE columns.",
+            "Optimistic concurrency control with row versioning (timestamp/rowversion) to avoid pessimistic locking."
+          ]
+        },
+        {
+          id: "iq-fin-3",
+          category: "domain",
+          question: "How do you structure data validation and audit logging for sensitive financial operations?",
+          context: `Banking and FinTech systems must comply with strict auditability and regulatory traceability.`,
+          talkingPoints: [
+            "Immutable append-only audit event tables tracking exact before/after states.",
+            "FluentValidation and business invariant checks inside domain entities before persisting.",
+            "Masking PII and financial card data in logs and telemetry."
+          ]
+        }
+      ];
+    } else {
+      return [
+        {
+          id: "iq-fin-1",
+          category: "architecture",
+          question: "Як ви гарантуєте сувору транзакційну цілісність (ACID) та ідемпотентність у високонавантажених платіжних процесах?",
+          context: `${job.company} працює з фінансовими транзакціями, де подвійне списання чи брудне читання неприпустимі.`,
+          talkingPoints: [
+            "Рівні ізоляції транзакцій (Read Committed Snapshot, Serializable) та баланс між продуктивністю й безпекою.",
+            "Реалізація ідемпотентних ключів (Idempotency Key) з розподіленим блокуванням (Redis/SQL).",
+            "Transaction Outbox Pattern для надійної синхронізації бази даних та брокера повідомлень."
+          ]
+        },
+        {
+          id: "iq-fin-2",
+          category: "deep_tech",
+          question: "Який ваш підхід до діагностики та усунення блокувань (Deadlocks) і повільних планів виконання SQL?",
+          context: `Фінансові реєстри мають високу конкурентність одночасних операцій, що часто спричиняє deadlock.`,
+          talkingPoints: [
+            "Аналіз планів виконання (Execution Plans, DMV) для виявлення Table Scan та відсутніх індексів.",
+            "Проектування non-clustered індексів із секцією INCLUDE для покриття запитів (Covering Index).",
+            "Оптимістичне блокування (Optimistic Concurrency) через RowVersion замість блокуючих транзакцій."
+          ]
+        },
+        {
+          id: "iq-fin-3",
+          category: "domain",
+          question: "Як організувати аудит та незмінність історії змін (Audit Trail) критичних фінансових операцій?",
+          context: `Банківські регулятори та безпека вимагають 100% простежуваності кожного запису.`,
+          talkingPoints: [
+            "Незмінні (Immutable) append-only таблиці аудиту для фіксації кожного кроку транзакції.",
+            "Валідація бізнес-правил всередині Domain Model (DDD) перед збереженням у БД.",
+            "Маскування чутливих даних (PII) у логах та системах моніторингу."
+          ]
+        }
+      ];
+    }
+  }
+
+  if (isCloudDevOps) {
+    if (isEn) {
+      return [
+        {
+          id: "iq-cld-1",
+          category: "architecture",
+          question: "How do you design decoupled microservices to prevent cascading failures during service downtime?",
+          context: `${job.company} builds distributed cloud services requiring high availability and low latency.`,
+          talkingPoints: [
+            "Circuit Breaker and exponential retry policies using Polly.",
+            "Asynchronous event brokers (RabbitMQ/Kafka) for eventual consistency.",
+            "Graceful degradation and fallbacks when third-party dependencies fail."
+          ]
+        },
+        {
+          id: "iq-cld-2",
+          category: "deep_tech",
+          question: "How do you optimize Docker containers for ASP.NET Core and establish zero-downtime CI/CD?",
+          context: `Production cloud environments require lightweight image footprints and rolling update health checks.`,
+          talkingPoints: [
+            "Multi-stage Docker builds using Alpine or distroless images to reduce footprint.",
+            "Configuring readiness and liveness probes in Docker/Kubernetes.",
+            "Blue/Green or Canary deployments with automated smoke testing."
+          ]
+        },
+        {
+          id: "iq-cld-3",
+          category: "architecture",
+          question: "How do you implement distributed tracing across microservices?",
+          context: `Debugging distributed requests across multiple containers requires end-to-end observability.`,
+          talkingPoints: [
+            "Injecting Correlation IDs in HTTP headers and message envelopes.",
+            "OpenTelemetry with Jaeger/Grafana Tempo for distributed span tracing.",
+            "Structured JSON logging via Serilog with trace contexts."
+          ]
+        }
+      ];
+    } else {
+      return [
+        {
+          id: "iq-cld-1",
+          category: "architecture",
+          question: "Як організувати взаємодію між мікросервісами для уникнення каскадних падінь системи?",
+          context: `${job.company} проектує хмарні сервіси, де відмова одного вузла не повинна ламати всю систему.`,
+          talkingPoints: [
+            "Використання патернів Circuit Breaker та Retry з експоненційним backoff (бібліотека Polly).",
+            "Асинхронний обмін подіями через черги (RabbitMQ/Kafka) для забезпечення Eventual Consistency.",
+            "Graceful degradation — повернення кешованих або дефолтних відповідей при недоступності залежностей."
+          ]
+        },
+        {
+          id: "iq-cld-2",
+          category: "deep_tech",
+          question: "Як ви підходите до оптимізації Docker-образів .NET та налаштування zero-downtime релізів у CI/CD?",
+          context: `Хмарний продакшн вимагає швидких білдів, мінімальних образів та плавних оновлень без простою.`,
+          talkingPoints: [
+            "Multi-stage Dockerfile для зменшення фінального розміру образу (використання chiseled/alpine).",
+            "Налаштування liveness та readiness probes для перевірки стану перед перемиканням трафіку.",
+            "Blue/Green або Rolling Deployment стратегії в пайплайні CI/CD."
+          ]
+        },
+        {
+          id: "iq-cld-3",
+          category: "architecture",
+          question: "Як налаштувати наскрізне логування та моніторинг (Distributed Tracing) у розподіленій системі?",
+          context: `Пошук проблем між кількома контейнерами потребує єдиного контексту запиту.`,
+          talkingPoints: [
+            "Прокидання Correlation ID через HTTP headers та властивості повідомлень у черзі.",
+            "Впровадження OpenTelemetry, Jaeger або Grafana Tempo для трейсингу життєвого циклу запиту.",
+            "Структуроване логування (Serilog) з обов'язковим логуванням контексту та таймінгів."
+          ]
+        }
+      ];
+    }
+  }
+
+  // Default / Enterprise / General Backend
+  if (isEn) {
+    return [
+      {
+        id: "iq-ent-1",
+        category: "architecture",
+        question: "How do you structure Clean Architecture and prevent domain logic leaks into external layers?",
+        context: `${job.company} values maintainable, testable codebases that scale across engineering teams.`,
+        talkingPoints: [
+          "Domain entities encapsulate core business rules and state changes, remaining agnostic of ORMs.",
+          "Application layer orchestrates use cases (CQRS with MediatR).",
+          "Dependency Inversion: infrastructure implements interfaces defined by the core domain."
+        ]
+      },
+      {
+        id: "iq-ent-2",
+        category: "deep_tech",
+        question: "What is your automated testing pyramid strategy for high-confidence backend deployments?",
+        context: `Ensuring code regressions are caught before reaching production.`,
+        talkingPoints: [
+          "Unit tests for pure domain logic and business calculation edge cases (xUnit, FluentAssertions).",
+          "Integration tests with real database instances using Testcontainers and WebApplicationFactory.",
+          "Contract testing for public APIs."
+        ]
+      },
+      {
+        id: "iq-ent-3",
+        category: "behavioral",
+        question: "How do you handle technical debt while meeting aggressive product delivery milestones?",
+        context: `Balancing engineering excellence with fast-paced feature delivery.`,
+        talkingPoints: [
+          "Pragmatic approach: deliberate technical debt is documented and scheduled in sprint tech tasks.",
+          "Boy Scout Rule: leave code cleaner than you found it during routine feature development.",
+          "Metrics-driven prioritization: address bottlenecks causing customer incidents or slowing CI/CD."
+        ]
+      }
+    ];
+  } else {
+    return [
+      {
+        id: "iq-ent-1",
+        category: "architecture",
+        question: "Як ви структуруєте Clean Architecture і захищаєте доменну логіку від витоків в інфраструктуру?",
+        context: `${job.company} цінує модульність, читабельність та тестованість архітектури.`,
+        talkingPoints: [
+          "Доменні ентіті інкапсулюють бізнес-правила та є повністю незалежними від фреймворків і ORM.",
+          "Application-шар організовує бізнес-сценарії (Use Cases) за допомогою CQRS / MediatR.",
+          "Dependency Inversion: інфраструктура реалізує інтерфейси, визначені в ядрі (Core)."
+        ]
+      },
+      {
+        id: "iq-ent-2",
+        category: "deep_tech",
+        question: "Яка ваша стратегія автоматизованого тестування для надійних релізів бекенду?",
+        context: `Захист від регресій та впевненість команди при частих розгортаннях у прод.`,
+        talkingPoints: [
+          "Швидкі Unit-тести для доменної логіки та граничних значень (xUnit / FluentAssertions).",
+          "Інтеграційні тести з реальними БД у Docker через Testcontainers та WebApplicationFactory.",
+          "Контрактні тести API для запобігання збоїв інтеграцій з фронтендом чи суміжними сервісами."
+        ]
+      },
+      {
+        id: "iq-ent-3",
+        category: "behavioral",
+        question: "Як ви балансуєте між усуненням технічного боргу та швидкою доставкою продуктових фіч?",
+        context: `Інженерна зрілість у роботі з пріоритетами бізнесу.`,
+        talkingPoints: [
+          "Прагматичний підхід: фіксація техборгу в беклозі та виділення фіксованого % часу в спринті.",
+          "Правило бойскаута: покращення суміжних ділянок коду під час роботи над новими задачами.",
+          "Пріоритет на тому, що безпосередньо впливає на стабільність продакшну або швидкість релізів."
+        ]
+      }
+    ];
+  }
 }
 
 export async function generateTailoredCV(

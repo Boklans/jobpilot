@@ -40,6 +40,14 @@ export interface SkillMatchItem {
   importance: 'critical' | 'nice_to_have';
 }
 
+export interface InterviewQuestionItem {
+  id: string;
+  question: string;
+  category: "architecture" | "domain" | "deep_tech" | "behavioral";
+  context: string;
+  talkingPoints: string[];
+}
+
 export interface MatchAnalysisResult {
   jobId: string;
   profileId: string;
@@ -51,6 +59,7 @@ export interface MatchAnalysisResult {
   experienceGaps: string[];
   tailoringTips: string[];
   interviewTips: string[];
+  interviewQuestions?: InterviewQuestionItem[];
   calculatedAt: string;
 }
 
@@ -83,8 +92,13 @@ export interface ApplicationTrackerItem {
   job: JobListing;
   status: ApplicationStatus;
   appliedDate?: string;
+  interviewDate?: string;
+  contactPerson?: string;
+  salaryTarget?: string;
   matchScore?: number;
   notes?: string;
+  tailoredCV?: TailoredCVResult;
+  coverLetter?: CoverLetterResult;
   updatedAt: string;
 }
 

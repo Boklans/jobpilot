@@ -16,7 +16,9 @@ import {
   JobListing, 
   MatchAnalysisResult, 
   ApplicationTrackerItem, 
-  ApplicationStatus 
+  ApplicationStatus,
+  TailoredCVResult,
+  CoverLetterResult
 } from "@/types";
 import { analyzeJobMatch } from "@/lib/ai/matcher";
 import { smoothScrollTo, scrollIntoCenter } from "@/lib/utils";
@@ -30,7 +32,8 @@ import {
   TrendingUp, 
   ShieldCheck,
   Zap,
-  Users
+  Users,
+  Calendar
 } from "lucide-react";
 
 export default function HomePage() {
@@ -188,19 +191,46 @@ export default function HomePage() {
     setCurrentAnalyses((prev) => prev.filter((item) => item.job.id !== jobId));
   };
 
-  const handleAddToTracker = (job: JobListing, score: number) => {
-    const exists = applications.some((app) => app.job.id === job.id);
-    if (!exists) {
+  const handleAddToTracker = (
+    job: JobListing,
+    score: number,
+    tailoredCV?: TailoredCVResult | null,
+    coverLetter?: CoverLetterResult | null
+  ) => {
+    const existingIndex = applications.findIndex((app) => app.job.id === job.id);
+    if (existingIndex >= 0) {
+      setApplications((prev) =>
+        prev.map((app, idx) =>
+          idx === existingIndex
+            ? {
+                ...app,
+                matchScore: score,
+                tailoredCV: tailoredCV || app.tailoredCV,
+                coverLetter: coverLetter || app.coverLetter,
+                updatedAt: new Date().toISOString(),
+              }
+            : app
+        )
+      );
+    } else {
       const newApp: ApplicationTrackerItem = {
         id: "app-" + Date.now(),
         job,
         status: "applied",
         matchScore: score,
         notes: `Відгук підготовлено через JobPilot (${score}% Match).`,
+        tailoredCV: tailoredCV || undefined,
+        coverLetter: coverLetter || undefined,
         updatedAt: new Date().toISOString(),
       };
       setApplications([newApp, ...applications]);
     }
+  };
+
+  const handleUpdateApplication = (updatedApp: ApplicationTrackerItem) => {
+    setApplications((prev) =>
+      prev.map((app) => (app.id === updatedApp.id ? updatedApp : app))
+    );
   };
 
   const handleUpdateStatus = (id: string, newStatus: ApplicationStatus) => {
@@ -273,6 +303,37 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
+
+            {/* Upcoming Interviews Reminder Banner if any scheduled */}
+            {applications.some(a => a.status === 'interview' && a.interviewDate) && (
+              <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-blue-500/10 border border-purple-200/90 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900">
+                      {isEn ? "Upcoming Technical Interviews:" : "Заплановані співбесіди:"}
+                    </h4>
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                      {applications
+                        .filter(a => a.status === 'interview' && a.interviewDate)
+                        .map((app) => (
+                          <span key={app.id} className="text-xs font-semibold text-purple-900 bg-white px-3 py-1 rounded-xl border border-purple-200 shadow-2xs">
+                            <strong>{app.job.company}</strong> ({app.job.title}) — <span className="text-purple-600 font-bold">{app.interviewDate}</span>
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab("tracker")}
+                  className="text-xs font-bold text-purple-700 hover:text-purple-900 inline-flex items-center gap-1 self-start sm:self-auto shrink-0 bg-white px-3 py-2 rounded-xl border border-purple-200 hover:bg-purple-50 transition"
+                >
+                  <span>{isEn ? "Open in Tracker →" : "Відкрити в Трекері →"}</span>
+                </button>
+              </div>
+            )}
 
             {/* Recommended Opportunities List - The Visual Core */}
             <div className="space-y-4">
@@ -461,7 +522,9 @@ export default function HomePage() {
             <TrackerBoard
               applications={applications}
               onUpdateStatus={handleUpdateStatus}
+              onUpdateApplication={handleUpdateApplication}
               onDeleteApplication={handleDeleteApplication}
+              candidate={activeCandidate}
               lang={lang}
             />
           </div>

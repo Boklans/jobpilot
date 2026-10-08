@@ -25,7 +25,8 @@ import {
   MapPin,
   DollarSign,
   Printer,
-  Trash2
+  Trash2,
+  Target
 } from "lucide-react";
 import { generateTailoredCV, generateCoverLetter } from "@/lib/ai/matcher";
 import { TailoredCVModal } from "@/components/cv/TailoredCVModal";
@@ -36,7 +37,12 @@ interface MatchAnalysisCardProps {
   job: JobListing;
   analysis: MatchAnalysisResult;
   candidate: CandidateProfile;
-  onAddToTracker: (job: JobListing, score: number) => void;
+  onAddToTracker: (
+    job: JobListing,
+    score: number,
+    tailoredCV?: TailoredCVResult | null,
+    coverLetter?: CoverLetterResult | null
+  ) => void;
   onDeleteJob?: (jobId: string) => void;
   lang?: Language;
 }
@@ -60,6 +66,7 @@ export function MatchAnalysisCard({
   const [clLength, setClLength] = useState<CoverLetterLength>("standard");
   const [copiedCL, setCopiedCL] = useState(false);
   const [copiedSubject, setCopiedSubject] = useState(false);
+  const [copiedQuestionId, setCopiedQuestionId] = useState<string | null>(null);
   const [isAddedToTracker, setIsAddedToTracker] = useState(false);
   const [showFullJob, setShowFullJob] = useState(false);
   const [showCVModal, setShowCVModal] = useState(false);
@@ -71,6 +78,9 @@ export function MatchAnalysisCard({
     try {
       const res = await generateTailoredCV(candidate, job, analysis, lang);
       setTailoredCV(res);
+      if (isAddedToTracker) {
+        onAddToTracker(job, analysis.score, res, coverLetter);
+      }
       setTimeout(() => {
         scrollIntoCenter(tailoredCVRef.current);
       }, 100);
@@ -92,6 +102,9 @@ export function MatchAnalysisCard({
       setCoverLetter(res);
       setClLang(l);
       setClLength(len);
+      if (isAddedToTracker) {
+        onAddToTracker(job, analysis.score, tailoredCV, res);
+      }
       if (shouldScroll) {
         setTimeout(() => {
           scrollIntoCenter(coverLetterRef.current);
@@ -111,7 +124,7 @@ export function MatchAnalysisCard({
   };
 
   const handleTrackerClick = () => {
-    onAddToTracker(job, analysis.score);
+    onAddToTracker(job, analysis.score, tailoredCV, coverLetter);
     setIsAddedToTracker(true);
   };
 
@@ -299,6 +312,89 @@ export function MatchAnalysisCard({
             )}
           </div>
         </div>
+
+        {/* AI Interview Prep (Cheat Sheet) */}
+        {analysis.interviewQuestions && analysis.interviewQuestions.length > 0 && (
+          <div className="bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/40 border border-indigo-200/90 rounded-2xl p-5 space-y-4 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/90 pb-3">
+              <div className="flex items-center gap-2 text-indigo-950 font-bold text-sm">
+                <Target className="w-4 h-4 text-indigo-600" />
+                <span>{t.interviewPrepTitle}</span>
+              </div>
+              <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-100/80 px-2.5 py-0.5 rounded-full border border-indigo-200 self-start sm:self-auto">
+                {analysis.interviewQuestions.length} {isEn ? "Targeted Questions" : "Ключових питань"}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500 font-normal">
+              {t.interviewPrepSubtitle}
+            </p>
+
+            <div className="space-y-3 pt-1">
+              {analysis.interviewQuestions.map((q, idx) => (
+                <div key={q.id || idx} className="bg-white rounded-xl p-4 border border-indigo-100/90 shadow-2xs space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          Q{idx + 1} • {q.category.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
+                        {q.question}
+                      </h4>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const copyText = `${q.question}\n\nContext: ${q.context}\nTalking Points:\n${q.talkingPoints.map(p => `• ${p}`).join('\n')}`;
+                        navigator.clipboard.writeText(copyText);
+                        setCopiedQuestionId(q.id || String(idx));
+                        setTimeout(() => setCopiedQuestionId(null), 2000);
+                      }}
+                      className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1 shrink-0 p-1.5 rounded-lg hover:bg-indigo-50 transition border border-indigo-100 bg-white"
+                      title={t.copyQuestion}
+                    >
+                      {copiedQuestionId === (q.id || String(idx)) ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {copiedQuestionId === (q.id || String(idx)) ? t.copiedQuestion : t.copyQuestion}
+                      </span>
+                    </button>
+                  </div>
+
+                  {q.context && (
+                    <div className="text-xs bg-slate-50 text-slate-600 p-2.5 rounded-lg border border-slate-100">
+                      <strong className="text-slate-800 text-[11px] uppercase tracking-wider block mb-0.5">
+                        {t.whyTheyAsk}
+                      </strong>
+                      <span>{q.context}</span>
+                    </div>
+                  )}
+
+                  {q.talkingPoints && q.talkingPoints.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 block">
+                        {t.talkingPointsLabel}
+                      </span>
+                      <ul className="text-xs text-slate-700 space-y-1">
+                        {q.talkingPoints.map((pt, pIdx) => (
+                          <li key={pIdx} className="flex items-start gap-1.5">
+                            <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
+                            <span>{pt}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons Toolbar */}
         <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3">

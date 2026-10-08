@@ -129,6 +129,9 @@ export const initialApplications: ApplicationTrackerItem[] = [
     job: sampleJobs[0],
     status: "interview",
     appliedDate: "2026-10-02",
+    interviewDate: "15 Жовтня, 15:00",
+    contactPerson: "Олена (HR Lead)",
+    salaryTarget: "$5,000",
     matchScore: 92,
     notes: "HR скринінг пройдено успішно. Технічне інтерв'ю призначено на п'ятницю.",
     updatedAt: new Date().toISOString()
