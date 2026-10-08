@@ -57,6 +57,7 @@ export function MatchAnalysisCard({
   const [isGeneratingCL, setIsGeneratingCL] = useState(false);
   const [clLang, setClLang] = useState<"en" | "ua">(lang === "en" ? "en" : "ua");
   const [copiedCL, setCopiedCL] = useState(false);
+  const [copiedSubject, setCopiedSubject] = useState(false);
   const [isAddedToTracker, setIsAddedToTracker] = useState(false);
   const [showFullJob, setShowFullJob] = useState(false);
   const [showCVModal, setShowCVModal] = useState(false);
@@ -488,6 +489,30 @@ export function MatchAnalysisCard({
                 </button>
               </div>
             </div>
+
+            {coverLetter.subjectLine && (
+              <div className="bg-white rounded-xl p-3.5 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                    {t.subjectLineLabel}
+                  </span>
+                  <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate select-all">
+                    {coverLetter.subjectLine}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(coverLetter.subjectLine);
+                    setCopiedSubject(true);
+                    setTimeout(() => setCopiedSubject(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-100 transition shrink-0 self-start sm:self-auto"
+                >
+                  {copiedSubject ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedSubject ? t.copiedSubject : t.copySubject}</span>
+                </button>
+              </div>
+            )}
 
             <div className="bg-white p-5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 whitespace-pre-line leading-relaxed font-sans shadow-2xs">
               {coverLetter.content}

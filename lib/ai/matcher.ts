@@ -403,10 +403,35 @@ export async function generateCoverLetter(
   const geminiKey = process.env.GEMINI_API_KEY;
   const isEn = language === "en";
 
-  const letterPrompt = `Write a compelling, concise and punchy tech cover letter for this candidate applying to this job.
+  // 1. Analyze Job Domain & Stack Alignment
+  const jobTextLower = (job.rawDescription + " " + job.title + " " + job.company).toLowerCase();
+
+  const isFintech = /bank|fintech|financial|payment|transaction|фінанс|платіж|банк|кредит|lime|privat/i.test(jobTextLower);
+  const isCloudDevOps = /aws|azure|cloud|docker|kubernetes|k8s|ci\/cd|devops|terraform|microservice|хмар/i.test(jobTextLower);
+  const isDatabaseHeavy = /sql|mssql|postgresql|database|оптимізац|stored procedure|query|індекс|high-load|високонавантаж/i.test(jobTextLower);
+  const isEnterprise = /enterprise|product|saas|murano|crm|erp|b2b|architecture|архітектур/i.test(jobTextLower);
+
+  // Match relevant candidate skills against job description
+  const matchedSkills = profile.skills.filter((s) => jobTextLower.includes(s.toLowerCase()));
+  const topHighlightedSkills = Array.from(new Set([...matchedSkills, ...profile.skills])).slice(0, 5);
+  const primarySkillsStr = topHighlightedSkills.join(", ");
+
+  const letterPrompt = `You are an elite Executive Tech Recruiter and Career Strategist.
+Write a highly compelling, punchy, tailored cover letter for this tech candidate applying to ${job.company} for the role of "${job.title}".
 LANGUAGE: Write strictly in ${isEn ? "English" : "Ukrainian"}.
-Tone: Professional, direct, confident, and free of clichés.
-Return strict JSON with fields "subjectLine" and "content".
+CRITICAL RULES FOR HIGH-CONVERTING TECH COVER LETTER:
+1. CUSTOMIZE DEEPLY TO ${job.company} AND THE ROLE:
+   - Identify the business domain (e.g. Financial Transactions & Banking, Cloud-Native Microservices, Enterprise SaaS, or Scalable Backend Architecture).
+   - Address concrete architectural, engineering, and scalability challenges mentioned in the vacancy.
+   - Reference candidate's verified skills (${primarySkillsStr}) and real experience level (${profile.yearsOfExperience}+ years).
+2. TONE & STYLE:
+   - Professional, confident, direct, and free of generic clichés (do NOT use "I am a hard worker", "I am thrilled to apply", or "fast learner").
+   - Highlight tangible engineering rigor: performance optimization, system reliability, testing, and clean architecture.
+3. OUTPUT FORMAT:
+   Return strict JSON with fields "subjectLine" and "content":
+   - "subjectLine": Catchy and informative (e.g. "Application: [Job Title] — [Candidate Name] ([Domain/Tech Specialization])").
+   - "content": Complete, formatted cover letter ready to send to hiring managers.
+
 Candidate: ${JSON.stringify(profile)}
 Job: ${JSON.stringify(job)}`;
 
@@ -425,35 +450,103 @@ Job: ${JSON.stringify(job)}`;
     }
   }
 
+  // 2. Intelligent Domain-Aware Heuristic Generator
+  let subjectLine: string;
+  let domainParagraph: string;
+  let domainTag: string;
+
+  if (isFintech) {
+    domainTag = isEn ? "FinTech & High-Throughput Financial Systems" : "FinTech та високонавантажені транзакційні системи";
+    subjectLine = isEn
+      ? `Application: ${job.title} — ${profile.fullName} (${domainTag})`
+      : `Відгук на вакансію: ${job.title} — ${profile.fullName} (${domainTag})`;
+
+    domainParagraph = isEn
+      ? `What particularly excites me about joining ${job.company} is the opportunity to engineer mission-critical financial systems where reliability and performance are non-negotiable. In my previous roles, I have specialized in architecting resilient backend services, ensuring strict transactional integrity (ACID compliance), and optimizing complex database queries for high-throughput payment and data pipelines. Eliminating performance bottlenecks while safeguarding zero data loss has been a cornerstone of my engineering work.`
+      : `Мене особливо приваблює позиція у ${job.company} через високі інженерні вимоги до надійності та безвідмовності транзакційних процесів. У своєму практичному досвіді я зосереджувався на проектуванні стійких бекенд-сервісів, забезпеченні суворої транзакційної цілісності (ACID) та оптимізації важких SQL-запитів для високонавантажених фінансових потоків. Усунення вузьких місць швидкодії та гарантування нульової втрати даних — це пріоритети, з якими я працюю щодня.`;
+  } else if (isCloudDevOps) {
+    domainTag = isEn ? "Cloud-Native Architecture & Microservices" : "Хмарна мікросервісна архітектура & Docker";
+    subjectLine = isEn
+      ? `Application: ${job.title} — ${profile.fullName} (${domainTag})`
+      : `Відгук на вакансію: ${job.title} — ${profile.fullName} (${domainTag})`;
+
+    domainParagraph = isEn
+      ? `Reviewing the requirements for ${job.company}, I see a strong alignment with my hands-on background in modern cloud-native architectures and containerized microservices. I have extensive experience decoupling monolithic services, implementing robust asynchronous messaging patterns, and containerizing distributed applications with Docker for high availability and automated CI/CD deployment.`
+      : `Ознайомившись із вимогами ${job.company}, я бачу безпосередній збіг із моїм практичним бекграундом у хмарних технологіях та контейнеризованих мікросервісах. Я маю досвід декомпозиції монолітів, налаштування асинхронного обміну повідомленнями та пакування розподілених систем у Docker для досягнення високої доступності (High Availability) та автоматизованого CI/CD пайплайну.`;
+  } else if (isDatabaseHeavy) {
+    domainTag = isEn ? "High-Load Backend & SQL Optimization" : "High-Load бекенд та оптимізація баз даних";
+    subjectLine = isEn
+      ? `Application: ${job.title} — ${profile.fullName} (${domainTag})`
+      : `Відгук на вакансію: ${job.title} — ${profile.fullName} (${domainTag})`;
+
+    domainParagraph = isEn
+      ? `Given ${job.company}'s strong focus on data-intensive workloads, my track record in relational database design, query plan analysis, and stored procedure optimization directly addresses your needs. In my previous production systems, I systematically diagnosed indexing bottlenecks and tuned query execution, reducing query latency by up to 35% on multi-million row datasets.`
+      : `Враховуючи вимоги ${job.company} до високонавантаженої обробки даних, мій практичний досвід у профілюванні складних SQL-запитів, індексації та оптимізації реляційних баз даних безпосередньо відповідає вашим потребам. На попередніх проектах я системно усував блокування та оптимізував плани виконання важких запитів, скоротивши затримку (latency) до 35% на таблицях з мільйонами записів.`;
+  } else {
+    domainTag = isEn ? "Enterprise .NET & Scalable Architecture" : "Enterprise .NET бекенд & Clean Architecture";
+    subjectLine = isEn
+      ? `Application: ${job.title} — ${profile.fullName} (${domainTag})`
+      : `Відгук на вакансію: ${job.title} — ${profile.fullName} (${domainTag})`;
+
+    domainParagraph = isEn
+      ? `What attracts me to ${job.company} is your commitment to high engineering standards and scalable product delivery. In my day-to-day engineering practice, I adhere strictly to Clean Architecture, SOLID principles, and Domain-Driven Design (DDD). This enables teams to build maintainable, modular backend components that can scale seamlessly as product complexity grows.`
+      : `Мене приваблює інженерна культура та продуктовий напрямок ${job.company}. У своїй практиці я послідовно застосовую принципи Clean Architecture, SOLID та Domain-Driven Design (DDD), що дозволяє команді будувати модульні, легко підтримувані сервіси, які безпечно масштабуються разом із зростанням бізнес-вимог.`;
+  }
+
+  // Construct Domain-Tailored Body
   if (isEn) {
-    return {
-      jobId: job.id,
-      subjectLine: `Application for ${job.title} — ${profile.fullName}`,
-      content: `Dear Hiring Team at ${job.company},
+    const content = `Dear Hiring Team at ${job.company},
 
-I am writing to express my strong interest in the ${job.title} position.
+I am writing to express my strong interest in the ${job.title} position at ${job.company}. With over ${profile.yearsOfExperience} years of commercial software engineering experience and dedicated technical focus on ${topHighlightedSkills.slice(0, 3).join(", ")}, I have built and scaled robust, production-grade systems that solve complex business requirements.
 
-With ${profile.yearsOfExperience}+ years of commercial experience as a ${profile.title} and strong expertise across ${profile.skills.slice(0, 5).join(", ")}, my technical background closely aligns with the requirements of this role.
+${domainParagraph}
 
-Throughout my career, I have focused on designing robust, high-scale solutions and improving system performance. I would welcome the opportunity to discuss how my skill set can support ${job.company}'s current goals.
+Key areas where I can bring immediate value to ${job.company}:
+• Primary Tech Stack: Proven, hands-on production expertise across ${primarySkillsStr}.
+• Architecture & Resilience: Designing decoupled APIs, fault-tolerant data pipelines, and optimized backend logic.
+• Engineering Standards: Rigorous automated testing, clean code conventions, and smooth CI/CD deployment pipelines.
+• Team Collaboration: Transparent technical communication, pragmatic problem-solving, and cross-functional alignment.
+
+I would welcome the opportunity to connect with your team to discuss how my technical experience can help ${job.company} deliver on its upcoming milestones.
+
+Thank you for your time and consideration.
 
 Best regards,
-${profile.fullName}`,
+${profile.fullName}
+${profile.title}`;
+
+    return {
+      jobId: job.id,
+      subjectLine,
+      content,
     };
   }
 
-  return {
-    jobId: job.id,
-    subjectLine: `Відгук на вакансію ${job.title} — ${profile.fullName}`,
-    content: `Шановна команда ${job.company},
+  // Ukrainian
+  const content = `Шановна команда ${job.company},
 
-Пишу, щоб висловити зацікавленість у позиції ${job.title}.
+Пишу, щоб запропонувати свою кандидатуру на позицію ${job.title} у компанії ${job.company}. Маючи понад ${profile.yearsOfExperience} років практичного комерційного досвіду розробки та спеціалізацію на ${topHighlightedSkills.slice(0, 3).join(", ")}, я фокусуюся на побудові стабільних, масштабованих систем та вирішенні нетривіальних інженерних викликів.
 
-Мій практичний досвід (${profile.yearsOfExperience}+ років у сфері ${profile.title}) та стек технологій (${profile.skills.slice(0, 5).join(", ")}) безпосередньо відповідають викликам, описаним у вашій вакансії.
+${domainParagraph}
 
-Протягом своєї кар'єри я фокусувався на розробці надійних, масштабованих продуктів та оптимізації швидкодії систем. Буду радий обговорити на інтерв'ю, як мій практичний досвід допоможе реалізувати поточні цілі команди ${job.company}.
+Ключові напрямки, якими я можу швидко підсилити команду ${job.company}:
+• Релевантний стек: Глибокий практичний досвід роботи з ${primarySkillsStr}.
+• Архітектура та надійність: Проектування чистих API, відмовостійкої бізнес-логіки та оптимізація швидкодії.
+• Інженерна культура: Автоматизоване тестування, дотримання стандартів чистого коду та надійні процеси CI/CD.
+• Командна робота: Чітка комунікація, структуровані code review та орієнтація на досягнення спільних бізнес-результатів.
+
+Буду радий поспілкуватися на технічному інтерв'ю, щоб детальніше обговорити, як мій практичний досвід допоможе реалізувати поточні інженерні цілі ${job.company}.
+
+Дякую за увагу до мого відгуку!
 
 З повагою,
-${profile.fullName}`,
+${profile.fullName}
+${profile.title}`;
+
+  return {
+    jobId: job.id,
+    subjectLine,
+    content,
   };
 }
+
