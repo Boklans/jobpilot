@@ -102,3 +102,25 @@ export interface ApplicationTrackerItem {
   updatedAt: string;
 }
 
+export interface SalaryInsightResult {
+  estimatedMin: number;
+  estimatedMax: number;
+  median: number;
+  currency: string;
+  period: string;
+  marketConfidence: "high" | "moderate" | "low";
+  factors: string[];
+  negotiationTips: {
+    title: string;
+    script: string;
+    context: string;
+  }[];
+}
+
+export interface OutreachKitResult {
+  djinniLinkedInIntro: string;
+  followUpMessage: string;
+  thankYouNote: string;
+}
+
+

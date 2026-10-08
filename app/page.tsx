@@ -33,8 +33,10 @@ import {
   ShieldCheck,
   Zap,
   Users,
-  Calendar
+  Calendar,
+  Layers
 } from "lucide-react";
+import { JobComparisonModal } from "@/components/jobs/JobComparisonModal";
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -44,6 +46,7 @@ export default function HomePage() {
   const [applications, setApplications] = useState<ApplicationTrackerItem[]>(initialApplications);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentAnalyses, setCurrentAnalyses] = useState<{ job: JobListing; analysis: MatchAnalysisResult }[]>([]);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
   const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
 
   // 1. Load persisted data from localStorage on client mount
@@ -410,12 +413,23 @@ export default function HomePage() {
                   </p>
                 </div>
                 {currentAnalyses.length > 0 && (
-                  <button
-                    onClick={() => setActiveTab("analyze")}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                  >
-                    {dt.viewAll} ({currentAnalyses.length}) →
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {currentAnalyses.length >= 2 && (
+                      <button
+                        onClick={() => setShowComparisonModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-bold transition shadow-2xs"
+                      >
+                        <Layers className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{translations[lang].comparison.compareBtn}</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setActiveTab("analyze")}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                      {dt.viewAll} ({currentAnalyses.length}) →
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -560,6 +574,15 @@ export default function HomePage() {
                 <h3 className="text-lg font-bold text-slate-900">
                   {isEn ? "Analyzed Vacancies" : "Аналіз вакансій"} ({currentAnalyses.length})
                 </h3>
+                {currentAnalyses.length >= 2 && (
+                  <button
+                    onClick={() => setShowComparisonModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-bold transition shadow-2xs"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{translations[lang].comparison.compareBtn}</span>
+                  </button>
+                )}
               </div>
               {currentAnalyses.map(({ job, analysis }) => (
                 <MatchAnalysisCard
@@ -602,6 +625,16 @@ export default function HomePage() {
             />
           </div>
         )}
+
+        {/* Level 3: Job Comparison Matrix Modal */}
+        <JobComparisonModal
+          isOpen={showComparisonModal}
+          onClose={() => setShowComparisonModal(false)}
+          analyses={currentAnalyses}
+          candidate={activeCandidate}
+          lang={lang}
+          onSelectJob={() => setActiveTab("analyze")}
+        />
       </main>
     </div>
   );

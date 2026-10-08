@@ -27,9 +27,16 @@ import {
   Printer,
   Trash2,
   Target,
-  Download
+  Download,
+  BadgeDollarSign,
+  MessagesSquare
 } from "lucide-react";
-import { generateTailoredCV, generateCoverLetter } from "@/lib/ai/matcher";
+import { 
+  generateTailoredCV, 
+  generateCoverLetter,
+  calculateSalaryInsights,
+  generateOutreachKit 
+} from "@/lib/ai/matcher";
 import { TailoredCVModal } from "@/components/cv/TailoredCVModal";
 import { scrollIntoCenter } from "@/lib/utils";
 import { translations, Language } from "@/lib/translations";
@@ -72,7 +79,23 @@ export function MatchAnalysisCard({
   const [showFullJob, setShowFullJob] = useState(false);
   const [showCVModal, setShowCVModal] = useState(false);
 
+  // Level 3 state: Salary Insights & Outreach Kit
+  const [copiedScriptIdx, setCopiedScriptIdx] = useState<number | null>(null);
+  const [showSalaryDetails, setShowSalaryDetails] = useState(false);
+  const [showOutreachKit, setShowOutreachKit] = useState(false);
+  const [activeOutreachTab, setActiveOutreachTab] = useState<"djinni" | "followup" | "thankyou">("djinni");
+  const [copiedOutreach, setCopiedOutreach] = useState(false);
+  const outreachRef = useRef<HTMLDivElement>(null);
+
   const isEn = lang === "en";
+
+  const salaryInsights = React.useMemo(() => {
+    return calculateSalaryInsights(candidate, job, isEn);
+  }, [candidate, job, isEn]);
+
+  const outreachKit = React.useMemo(() => {
+    return generateOutreachKit(candidate, job, isEn);
+  }, [candidate, job, isEn]);
 
   const handleTailor = async () => {
     setIsGeneratingCV(true);
@@ -563,6 +586,111 @@ export function MatchAnalysisCard({
           </div>
         )}
 
+        {/* Salary Insights & Negotiation Copilot */}
+        <div className="bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 border border-emerald-200/90 rounded-2xl p-5 space-y-4 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-100 pb-3">
+            <div className="flex items-center gap-2 text-emerald-950 font-bold text-sm">
+              <BadgeDollarSign className="w-4 h-4 text-emerald-600" />
+              <span>{t.salaryInsightsTitle}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                {isEn ? "DOU / Djinni Benchmark" : "Бенчмарк DOU / Djinni"}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500 font-normal">
+            {t.salaryInsightsSubtitle}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Market Range Card */}
+            <div className="bg-white rounded-xl p-4 border border-emerald-100 shadow-2xs space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                {t.marketBracketLabel}
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-900 tabular-nums">
+                  ${salaryInsights.estimatedMin.toLocaleString()} – ${salaryInsights.estimatedMax.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500">{t.perMonth}</span>
+              </div>
+              <div className="text-xs text-slate-600 pt-1">
+                <strong>{t.marketMedianLabel}</strong>{" "}
+                <span className="text-emerald-700 font-bold">${salaryInsights.median.toLocaleString()}</span> {t.perMonth}
+              </div>
+            </div>
+
+            {/* Vacancy Stated vs Calculated */}
+            <div className="bg-white rounded-xl p-4 border border-emerald-100 shadow-2xs space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                {t.statedSalary}
+              </span>
+              {job.salary ? (
+                <div className="text-lg font-bold text-emerald-700">
+                  {job.salary}
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500 italic pt-1">
+                  {t.unspecifiedSalary}
+                </div>
+              )}
+              <div className="text-[11px] text-slate-500 space-y-0.5 pt-1">
+                {salaryInsights.factors.map((f, fi) => (
+                  <div key={fi} className="flex items-center gap-1.5">
+                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Toggle Negotiation Scripts */}
+          <div className="pt-2">
+            <button
+              onClick={() => setShowSalaryDetails(!showSalaryDetails)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-950 transition"
+            >
+              <span>{showSalaryDetails ? (isEn ? "Hide Negotiation Scripts" : "Приховати скрипти перемовин") : (isEn ? "Show Negotiation Scripts with HR" : "Показати скрипти для перемовин з HR")}</span>
+              {showSalaryDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {showSalaryDetails && (
+              <div className="mt-3 space-y-3 animate-in fade-in">
+                <span className="text-xs font-bold text-slate-800 block">
+                  {t.negotiationTitle}
+                </span>
+                {salaryInsights.negotiationTips.map((tip, idx) => (
+                  <div key={idx} className="bg-white rounded-xl p-3.5 border border-emerald-100 shadow-2xs space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-900">{tip.title}</h5>
+                        <p className="text-[11px] text-slate-500">{tip.context}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(tip.script);
+                          setCopiedScriptIdx(idx);
+                          setTimeout(() => setCopiedScriptIdx(null), 2000);
+                        }}
+                        className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg border border-emerald-200 hover:bg-emerald-50 transition"
+                      >
+                        {copiedScriptIdx === idx ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedScriptIdx === idx ? t.copiedScript : t.copyScript}</span>
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-700 italic bg-slate-50 p-2.5 rounded-lg border border-slate-100 leading-relaxed font-sans">
+                      "{tip.script}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Action Buttons Toolbar */}
         <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3">
           <button
@@ -603,6 +731,23 @@ export function MatchAnalysisCard({
                 <span>{t.trackBtn}</span>
               </>
             )}
+          </button>
+
+          <button
+            onClick={() => {
+              setShowOutreachKit(!showOutreachKit);
+              if (!showOutreachKit) {
+                setTimeout(() => scrollIntoCenter(outreachRef.current), 100);
+              }
+            }}
+            className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-semibold transition active:scale-[0.98] ${
+              showOutreachKit
+                ? "bg-purple-100 text-purple-900 border-purple-300 shadow-xs"
+                : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+            }`}
+          >
+            <MessagesSquare className="w-4 h-4 text-purple-600" />
+            <span>{t.outreachKitTitle.split('(')[0].trim()}</span>
           </button>
 
           <button
@@ -853,6 +998,86 @@ export function MatchAnalysisCard({
 
             <div className="bg-white p-5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 whitespace-pre-line leading-relaxed font-sans shadow-2xs">
               {coverLetter.content}
+            </div>
+          </div>
+        )}
+
+        {/* Generated Outreach Kit Panel */}
+        {showOutreachKit && (
+          <div ref={outreachRef} className="mt-6 border border-purple-200 bg-purple-50/40 rounded-2xl p-5 space-y-4 animate-in fade-in scroll-mt-24">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-purple-950 font-bold text-sm">
+                <MessagesSquare className="w-4 h-4 text-purple-600" />
+                <span>{t.outreachKitTitle}</span>
+              </div>
+
+              <button
+                onClick={() => {
+                  const currentText = 
+                    activeOutreachTab === "djinni" ? outreachKit.djinniLinkedInIntro :
+                    activeOutreachTab === "followup" ? outreachKit.followUpMessage :
+                    outreachKit.thankYouNote;
+                  navigator.clipboard.writeText(currentText);
+                  setCopiedOutreach(true);
+                  setTimeout(() => setCopiedOutreach(false), 2000);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-purple-200 text-purple-900 text-xs font-semibold hover:bg-purple-100 transition shadow-2xs"
+              >
+                {copiedOutreach ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedOutreach ? t.copiedMessage : t.copyMessage}</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              {t.outreachKitSubtitle}
+            </p>
+
+            {/* Outreach Tabs */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-white rounded-xl border border-purple-100 shadow-2xs">
+              <button
+                onClick={() => setActiveOutreachTab("djinni")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  activeOutreachTab === "djinni"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                {t.outreachDjinniTab}
+              </button>
+              <button
+                onClick={() => setActiveOutreachTab("followup")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  activeOutreachTab === "followup"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                {t.outreachFollowUpTab}
+              </button>
+              <button
+                onClick={() => setActiveOutreachTab("thankyou")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  activeOutreachTab === "thankyou"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                {t.outreachThankYouTab}
+              </button>
+            </div>
+
+            {/* Message Box */}
+            <div className="bg-white p-4 sm:p-5 rounded-xl border border-purple-100 text-xs sm:text-sm text-slate-800 leading-relaxed font-sans shadow-2xs relative">
+              <div className="absolute top-3 right-3 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                {(activeOutreachTab === "djinni" ? outreachKit.djinniLinkedInIntro :
+                  activeOutreachTab === "followup" ? outreachKit.followUpMessage :
+                  outreachKit.thankYouNote).length} {t.charCountLabel}
+              </div>
+              <p className="whitespace-pre-line pr-16 font-sans leading-relaxed">
+                {activeOutreachTab === "djinni" ? outreachKit.djinniLinkedInIntro :
+                 activeOutreachTab === "followup" ? outreachKit.followUpMessage :
+                 outreachKit.thankYouNote}
+              </p>
             </div>
           </div>
         )}

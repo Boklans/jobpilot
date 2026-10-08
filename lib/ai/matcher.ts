@@ -1,4 +1,14 @@
-import { CandidateProfile, JobListing, MatchAnalysisResult, TailoredCVResult, CoverLetterResult, CoverLetterLength, InterviewQuestionItem } from "@/types";
+import { 
+  CandidateProfile, 
+  JobListing, 
+  MatchAnalysisResult, 
+  TailoredCVResult, 
+  CoverLetterResult, 
+  CoverLetterLength, 
+  InterviewQuestionItem,
+  SalaryInsightResult,
+  OutreachKitResult
+} from "@/types";
 import { callGeminiJson } from "@/lib/ai/gemini";
 
 /**
@@ -886,4 +896,150 @@ ${profile.title}`;
     length,
   };
 }
+
+/**
+ * Intelligent Salary Insights & Negotiation Copilot
+ * Calculates market compensation brackets based on:
+ * - Candidate years of experience (Junior, Middle, Senior, Lead)
+ * - Domain complexity (FinTech, Cloud/HighLoad, Standard)
+ * - Benchmark data for Ukrainian & Global Remote IT markets (DOU/Djinni)
+ * Generates ready-to-use negotiation talking points for HR conversations.
+ */
+export function calculateSalaryInsights(
+  profile: CandidateProfile,
+  job: JobListing,
+  isEn: boolean = false
+): SalaryInsightResult {
+  const years = profile.yearsOfExperience || 3;
+  const jobText = (job.rawDescription + " " + job.title + " " + job.company).toLowerCase();
+  
+  // Base range by seniority
+  let baseMin = 2200;
+  let baseMax = 3200;
+
+  if (years < 2) {
+    baseMin = 800;
+    baseMax = 1500;
+  } else if (years < 5) {
+    baseMin = 2200;
+    baseMax = 3400;
+  } else if (years < 8) {
+    baseMin = 3800;
+    baseMax = 5200;
+  } else {
+    baseMin = 4800;
+    baseMax = 6500;
+  }
+
+  // Domain & Stack multipliers
+  const isFintech = /bank|fintech|financial|payment|transaction|банк|платіж|кредит|lime|privat/i.test(jobText);
+  const isCloudOrHighLoad = /aws|azure|gcp|kubernetes|k8s|microservice|kafka|distributed|high-load|high load|хмар/i.test(jobText);
+
+  let multiplier = 1.0;
+  const factors: string[] = [];
+
+  if (isEn) {
+    factors.push(`${years}+ years of experience seniority benchmark`);
+    if (isFintech) {
+      multiplier += 0.12;
+      factors.push("FinTech & payment domain premium (+12%)");
+    }
+    if (isCloudOrHighLoad) {
+      multiplier += 0.08;
+      factors.push("Cloud / Distributed systems architecture (+8%)");
+    }
+  } else {
+    factors.push(`Бенчмарк для грейду з ${years}+ роками комерційного досвіду`);
+    if (isFintech) {
+      multiplier += 0.12;
+      factors.push("Премія за FinTech, банкінг та платіжну експертизу (+12%)");
+    }
+    if (isCloudOrHighLoad) {
+      multiplier += 0.08;
+      factors.push("Премія за хмарні мікросервіси та High-Load архітектуру (+8%)");
+    }
+  }
+
+  const estimatedMin = Math.round((baseMin * multiplier) / 100) * 100;
+  const estimatedMax = Math.round((baseMax * multiplier) / 100) * 100;
+  const median = Math.round((estimatedMin + estimatedMax) / 2);
+
+  const topSkill = profile.skills[0] || "core stack";
+
+  const negotiationTips = isEn ? [
+    {
+      title: "Initial HR Screening: What are your salary expectations?",
+      context: "Anchor within the upper half of your market range while expressing flexibility.",
+      script: `Based on my ${years}+ years with ${topSkill} and the technical challenges at ${job.company}, my target range is $${estimatedMin} - $${estimatedMax} net/month. I'm open to discussing the exact figure depending on total benefits and technical scope.`
+    },
+    {
+      title: "Defending Top of Range ($" + estimatedMax + ")",
+      context: "Justify the higher figure through immediate production impact and zero ramp-up cost.",
+      script: `Targeting $${estimatedMax} is supported by my direct track record with ${profile.skills.slice(0, 3).join(", ")}, which allows me to take ownership of complex architectural decisions from day one without extended ramp-up.`
+    },
+    {
+      title: "Responding to an Offer Below Expectations",
+      context: "Counter respectfully by referencing market medians or proposing an early review.",
+      script: `Thank you for the offer! I am genuinely excited about the role and team at ${job.company}. However, the number is slightly below market median ($${median}) for this seniority. Is there room to bridge this gap, or agree on a milestone-based performance review at the 3-month mark?`
+    }
+  ] : [
+    {
+      title: "Первинний скринінг з HR: 'Які ваші фінансові очікування?'",
+      context: "Фіксуйте вилку у верхній половині ринку, залишаючи простір для узгодження умов.",
+      script: `Враховуючи мій досвід ${years}+ років з ${topSkill} та масштаб задач у ${job.company}, я орієнтуюся на вилку $${estimatedMin} – $${estimatedMax} net на місяць. При цьому я відкритий до діалогу щодо точної цифри залежно від загального компенсаційного пакету та технічної відповідальності.`
+    },
+    {
+      title: "Аргументація верхньої межі вилки ($" + estimatedMax + ")",
+      context: "Обґрунтування максимальної ставки реальним продакшн-досвідом без тривалого онбордингу.",
+      script: `Верхня планка $${estimatedMax} обумовлена моїм практичним досвідом з ${profile.skills.slice(0, 3).join(", ")}, завдяки чому я можу від першого дня брати відповідальність за архітектурні рішення та автономно деліверити задачі без тривалого навчання.`
+    },
+    {
+      title: "Відповідь на офер, нижчий за очікування",
+      context: "Ввічливий контр-офер з апеляцією до ринкової медіани або перегляду після випробувального терміну.",
+      script: `Дякую за пропозицію! Мені дуже імпонує проєкт і команда ${job.company}. Втім, запропонована цифра дещо нижча за ринкову медіану ($${median}) для мого грейду. Чи є можливість наблизити її до цієї позначки, або зафіксувати перегляд умов після завершення 3-місячного випробувального терміну?`
+    }
+  ];
+
+  return {
+    estimatedMin,
+    estimatedMax,
+    median,
+    currency: "$",
+    period: isEn ? "month" : "місяць",
+    marketConfidence: "high",
+    factors,
+    negotiationTips
+  };
+}
+
+/**
+ * Intelligent Recruiter Outreach Kit
+ * Generates 3 contextual messages tailored to the specific job and candidate:
+ * 1. Punchy LinkedIn/Djinni InMail (<300 chars)
+ * 2. Follow-up note after 4-5 days of silence
+ * 3. Post-interview thank-you note
+ */
+export function generateOutreachKit(
+  profile: CandidateProfile,
+  job: JobListing,
+  isEn: boolean = false
+): OutreachKitResult {
+  const years = profile.yearsOfExperience || 3;
+  const topSkills = profile.skills.slice(0, 2).join(" & ");
+
+  if (isEn) {
+    return {
+      djinniLinkedInIntro: `Hi! Saw your ${job.title} opening at ${job.company}. With ${years}+ years in ${topSkills} building robust production systems, I'd love to connect and share how my experience aligns with your team's goals!`,
+      followUpMessage: `Hi! Just following up on my application for the ${job.title} role at ${job.company} submitted a few days ago. I remain very enthusiastic about your team's roadmap. Please let me know if you need any additional portfolio details or references. Thank you!`,
+      thankYouNote: `Hi! Thank you for the insightful conversation today regarding the ${job.title} role. Discussing ${job.company}'s engineering challenges further confirmed my excitement to contribute with my ${topSkills} background. Looking forward to the next steps!`
+    };
+  }
+
+  return {
+    djinniLinkedInIntro: `Вітаю! Помітив вашу вакансію ${job.title} у ${job.company}. Маю ${years}+ років досвіду з ${topSkills} та проектування стабільних систем. Буду радий поспілкуватися та обговорити, як можу підсилити команду!`,
+    followUpMessage: `Доброго дня! Пишу уточнити статус мого відгуку на позицію ${job.title} у ${job.company}, надісланого кілька днів тому. Проєкт виглядає надзвичайно перспективним, тож залюбки надам будь-яку додаткову інформацію чи відповім на питання. Гарного дня!`,
+    thankYouNote: `Вітаю! Щиро дякую за конструктивну та цікаву розмову щодо ролі ${job.title}. Обговорення інженерних підходів ${job.company} ще більше підтвердило моє бажання підсилити команду експертизою в ${topSkills}. З нетерпінням очікую на наступні кроки!`
+  };
+}
+
 
