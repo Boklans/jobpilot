@@ -6,7 +6,8 @@ import {
   JobListing, 
   CandidateProfile, 
   TailoredCVResult, 
-  CoverLetterResult 
+  CoverLetterResult,
+  CoverLetterLength 
 } from "@/types";
 import { 
   CheckCircle, 
@@ -56,6 +57,7 @@ export function MatchAnalysisCard({
   const [isGeneratingCV, setIsGeneratingCV] = useState(false);
   const [isGeneratingCL, setIsGeneratingCL] = useState(false);
   const [clLang, setClLang] = useState<"en" | "ua">(lang === "en" ? "en" : "ua");
+  const [clLength, setClLength] = useState<CoverLetterLength>("standard");
   const [copiedCL, setCopiedCL] = useState(false);
   const [copiedSubject, setCopiedSubject] = useState(false);
   const [isAddedToTracker, setIsAddedToTracker] = useState(false);
@@ -77,13 +79,19 @@ export function MatchAnalysisCard({
     }
   };
 
-  const handleCoverLetter = async (targetLang?: "en" | "ua", shouldScroll: boolean = false) => {
+  const handleCoverLetter = async (
+    targetLang?: "en" | "ua",
+    targetLength?: CoverLetterLength,
+    shouldScroll: boolean = false
+  ) => {
     const l = targetLang || clLang;
+    const len = targetLength || clLength;
     setIsGeneratingCL(true);
     try {
-      const res = await generateCoverLetter(candidate, job, l);
+      const res = await generateCoverLetter(candidate, job, l, len);
       setCoverLetter(res);
       setClLang(l);
+      setClLength(len);
       if (shouldScroll) {
         setTimeout(() => {
           scrollIntoCenter(coverLetterRef.current);
@@ -304,7 +312,7 @@ export function MatchAnalysisCard({
           </button>
 
           <button
-            onClick={() => handleCoverLetter(undefined, true)}
+            onClick={() => handleCoverLetter(undefined, undefined, true)}
             disabled={isGeneratingCL}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition active:scale-[0.98] disabled:opacity-50"
           >
@@ -461,7 +469,7 @@ export function MatchAnalysisCard({
                 {/* Language Toggle */}
                 <div className="flex items-center bg-white border border-slate-300 rounded-lg p-0.5 text-xs font-semibold">
                   <button
-                    onClick={() => handleCoverLetter("en", false)}
+                    onClick={() => handleCoverLetter("en", undefined, false)}
                     disabled={isGeneratingCL}
                     className={`px-2.5 py-1 rounded transition ${
                       clLang === "en" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
@@ -470,7 +478,7 @@ export function MatchAnalysisCard({
                     🇬🇧 English
                   </button>
                   <button
-                    onClick={() => handleCoverLetter("ua", false)}
+                    onClick={() => handleCoverLetter("ua", undefined, false)}
                     disabled={isGeneratingCL}
                     className={`px-2.5 py-1 rounded transition ${
                       clLang === "ua" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
@@ -487,6 +495,54 @@ export function MatchAnalysisCard({
                   {copiedCL ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedCL ? t.copied : t.copyLetter}</span>
                 </button>
+              </div>
+            </div>
+
+            {/* Length Selector & Live Character Counter */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-200/60">
+              <div className="flex flex-wrap items-center gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                <button
+                  onClick={() => handleCoverLetter(undefined, "short", false)}
+                  disabled={isGeneratingCL}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    clLength === "short"
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  {t.clLengthShort}
+                </button>
+                <button
+                  onClick={() => handleCoverLetter(undefined, "standard", false)}
+                  disabled={isGeneratingCL}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    clLength === "standard"
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  {t.clLengthStandard}
+                </button>
+                <button
+                  onClick={() => handleCoverLetter(undefined, "full", false)}
+                  disabled={isGeneratingCL}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    clLength === "full"
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  {t.clLengthFull}
+                </button>
+              </div>
+
+              {/* Live Character & Word Count */}
+              <div className="text-[11px] font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs flex items-center gap-1.5 self-start sm:self-auto">
+                <span className="text-slate-900 font-bold tabular-nums">{coverLetter.content.length}</span>
+                <span>{t.charCountLabel}</span>
+                <span className="text-slate-300">•</span>
+                <span className="text-slate-900 font-bold tabular-nums">{coverLetter.content.trim().split(/\s+/).filter(Boolean).length}</span>
+                <span>{t.wordCountLabel}</span>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import { CandidateProfile, JobListing, MatchAnalysisResult, TailoredCVResult, CoverLetterResult } from "@/types";
+import { CandidateProfile, JobListing, MatchAnalysisResult, TailoredCVResult, CoverLetterResult, CoverLetterLength } from "@/types";
 import { callGeminiJson } from "@/lib/ai/gemini";
 
 /**
@@ -398,7 +398,8 @@ Analysis: ${JSON.stringify(analysis)}`;
 export async function generateCoverLetter(
   profile: CandidateProfile,
   job: JobListing,
-  language: "ua" | "en" = "en"
+  language: "ua" | "en" = "en",
+  length: CoverLetterLength = "standard"
 ): Promise<CoverLetterResult> {
   const geminiKey = process.env.GEMINI_API_KEY;
   const isEn = language === "en";
@@ -416,9 +417,17 @@ export async function generateCoverLetter(
   const topHighlightedSkills = Array.from(new Set([...matchedSkills, ...profile.skills])).slice(0, 5);
   const primarySkillsStr = topHighlightedSkills.join(", ");
 
+  const lengthPromptInstruction =
+    length === "short"
+      ? "FORMAT: SHORT QUICK PITCH (3-4 concise sentences, under 80 words, max 500 characters, ideal for LinkedIn InMail or Djinni chat message. Punchy, direct, zero fluff)."
+      : length === "standard"
+      ? "FORMAT: STANDARD BALANCED COVER LETTER (2 focused paragraphs, 130-180 words, ~1000 characters, ideal for web application forms and ATS textareas)."
+      : "FORMAT: FULL DETAILED COVER LETTER (3-4 paragraphs with structured bullet points, 280-350 words, ideal for formal email or dedicated cover letter document).";
+
   const letterPrompt = `You are an elite Executive Tech Recruiter and Career Strategist.
-Write a highly compelling, punchy, tailored cover letter for this tech candidate applying to ${job.company} for the role of "${job.title}".
+Write a tailored cover letter for this tech candidate applying to ${job.company} for the role of "${job.title}".
 LANGUAGE: Write strictly in ${isEn ? "English" : "Ukrainian"}.
+${lengthPromptInstruction}
 CRITICAL RULES FOR HIGH-CONVERTING TECH COVER LETTER:
 1. CUSTOMIZE DEEPLY TO ${job.company} AND THE ROLE:
    - Identify the business domain (e.g. Financial Transactions & Banking, Cloud-Native Microservices, Enterprise SaaS, or Scalable Backend Architecture).
@@ -443,6 +452,7 @@ Job: ${JSON.stringify(job)}`;
           jobId: job.id,
           subjectLine: parsed.subjectLine,
           content: parsed.content,
+          length,
         };
       }
     } catch (err) {
@@ -452,8 +462,8 @@ Job: ${JSON.stringify(job)}`;
 
   // 2. Intelligent Domain-Aware Heuristic Generator
   let subjectLine: string;
-  let domainParagraph: string;
   let domainTag: string;
+  let domainParagraph: string;
 
   if (isFintech) {
     domainTag = isEn ? "FinTech & High-Throughput Financial Systems" : "FinTech та високонавантажені транзакційні системи";
@@ -493,9 +503,100 @@ Job: ${JSON.stringify(job)}`;
       : `Мене приваблює інженерна культура та продуктовий напрямок ${job.company}. У своїй практиці я послідовно застосовую принципи Clean Architecture, SOLID та Domain-Driven Design (DDD), що дозволяє команді будувати модульні, легко підтримувані сервіси, які безпечно масштабуються разом із зростанням бізнес-вимог.`;
   }
 
-  // Construct Domain-Tailored Body
-  if (isEn) {
-    const content = `Dear Hiring Team at ${job.company},
+  // Construct Content Based on Chosen Length and Language
+  let content: string;
+
+  if (length === "short") {
+    // ⚡ Short / Quick Pitch (~350-500 chars)
+    if (isEn) {
+      if (isFintech) {
+        content = `Hi ${job.company} Team,
+
+I am applying for the ${job.title} position. With ${profile.yearsOfExperience}+ years in backend engineering (${topHighlightedSkills.slice(0, 3).join(", ")}), I specialize in high-throughput systems, ACID transaction reliability, and query optimization. I would welcome the opportunity to discuss how my hands-on background can support ${job.company}'s engineering goals.
+
+Best regards,
+${profile.fullName}`;
+      } else if (isCloudDevOps) {
+        content = `Hi ${job.company} Team,
+
+I'm excited to apply for the ${job.title} role. With ${profile.yearsOfExperience}+ years in ${topHighlightedSkills.slice(0, 3).join(", ")}, my focus is on decoupled microservices, Docker containerization, and automated CI/CD pipelines. I would love to connect and share how I can help scale ${job.company}'s cloud architecture.
+
+Best regards,
+${profile.fullName}`;
+      } else if (isDatabaseHeavy) {
+        content = `Hi ${job.company} Team,
+
+I am writing regarding the ${job.title} opportunity. With ${profile.yearsOfExperience}+ years in ${topHighlightedSkills.slice(0, 3).join(", ")}, I have deep experience diagnosing query bottlenecks and reducing latency by up to 35% on high-load datasets. Looking forward to discussing how I can add immediate value to ${job.company}.
+
+Best regards,
+${profile.fullName}`;
+      } else {
+        content = `Hi ${job.company} Team,
+
+I am writing to express my interest in the ${job.title} position. With ${profile.yearsOfExperience}+ years of experience in ${topHighlightedSkills.slice(0, 3).join(", ")}, I focus on Clean Architecture, Domain-Driven Design, and maintainable backend systems. I would be glad to connect for an introductory call.
+
+Best regards,
+${profile.fullName}`;
+      }
+    } else {
+      // Ukrainian short
+      if (isFintech) {
+        content = `Вітаю, командо ${job.company}!
+
+Відгукуюся на позицію ${job.title}. Маю ${profile.yearsOfExperience}+ років комерційного досвіду (${topHighlightedSkills.slice(0, 3).join(", ")}), спеціалізуюся на високонавантажених системах, транзакційній надійності (ACID) та оптимізації баз даних. Буду радий поспілкуватися та обговорити, як можу підсилити вашу команду.
+
+З повагою,
+${profile.fullName}`;
+      } else if (isCloudDevOps) {
+        content = `Вітаю, командо ${job.company}!
+
+Цікавить позиція ${job.title}. Мій досвід (${profile.yearsOfExperience}+ років, ${topHighlightedSkills.slice(0, 3).join(", ")}) сфокусований на проектуванні мікросервісів, контейнеризації в Docker та автоматизації CI/CD. Буду радий короткому дзвінку, щоб обговорити деталі.
+
+З повагою,
+${profile.fullName}`;
+      } else if (isDatabaseHeavy) {
+        content = `Вітаю, командо ${job.company}!
+
+Відгукуюся на позицію ${job.title}. Маючи ${profile.yearsOfExperience}+ років досвіду (${topHighlightedSkills.slice(0, 3).join(", ")}), спеціалізуюся на оптимізації важких SQL-запитів, індексації та усуненні блокувань у high-load системах. Буду радий відповісти на запитання на технічному інтерв'ю.
+
+З повагою,
+${profile.fullName}`;
+      } else {
+        content = `Вітаю, командо ${job.company}!
+
+Відгукуюся на позицію ${job.title}. Мій практичний досвід (${profile.yearsOfExperience}+ років, ${topHighlightedSkills.slice(0, 3).join(", ")}) зосереджений на побудові надійних рішень на основі Clean Architecture та Domain-Driven Design. Буду радий поспілкуватися з вашою інженерною командою.
+
+З повагою,
+${profile.fullName}`;
+      }
+    }
+  } else if (length === "standard") {
+    // 📄 Standard Balanced (~900-1100 chars)
+    if (isEn) {
+      content = `Dear Hiring Team at ${job.company},
+
+I am writing to express my strong interest in the ${job.title} position at ${job.company}. With over ${profile.yearsOfExperience} years of commercial software engineering experience, my background in ${topHighlightedSkills.slice(0, 3).join(", ")} directly aligns with your requirements. ${domainParagraph}
+
+In this role, I can deliver immediate impact with proven expertise across ${primarySkillsStr}, automated testing, and clean architecture standards. I would welcome the opportunity to discuss how my technical experience can help ${job.company} achieve its engineering goals.
+
+Best regards,
+${profile.fullName}
+${profile.title}`;
+    } else {
+      content = `Шановна команда ${job.company},
+
+Пишу, щоб висловити зацікавленість у позиції ${job.title} у компанії ${job.company}. Маючи понад ${profile.yearsOfExperience} років практичного комерційного бекграунду та спеціалізацію на ${topHighlightedSkills.slice(0, 3).join(", ")}, я фокусуюся на побудові надійних та масштабованих архітектурних рішень. ${domainParagraph}
+
+На цій позиції я зможу з перших тижнів підсилити команду завдяки глибокому володінню ${primarySkillsStr}, культурі автоматизованого тестування та стандартам чистого коду. Буду радий поспілкуватися на технічному інтерв'ю, щоб детальніше обговорити спільні інженерні задачі.
+
+З повагою,
+${profile.fullName}
+${profile.title}`;
+    }
+  } else {
+    // ✉️ Full Detailed (~1800+ chars with bullet points)
+    if (isEn) {
+      content = `Dear Hiring Team at ${job.company},
 
 I am writing to express my strong interest in the ${job.title} position at ${job.company}. With over ${profile.yearsOfExperience} years of commercial software engineering experience and dedicated technical focus on ${topHighlightedSkills.slice(0, 3).join(", ")}, I have built and scaled robust, production-grade systems that solve complex business requirements.
 
@@ -514,16 +615,8 @@ Thank you for your time and consideration.
 Best regards,
 ${profile.fullName}
 ${profile.title}`;
-
-    return {
-      jobId: job.id,
-      subjectLine,
-      content,
-    };
-  }
-
-  // Ukrainian
-  const content = `Шановна команда ${job.company},
+    } else {
+      content = `Шановна команда ${job.company},
 
 Пишу, щоб запропонувати свою кандидатуру на позицію ${job.title} у компанії ${job.company}. Маючи понад ${profile.yearsOfExperience} років практичного комерційного досвіду розробки та спеціалізацію на ${topHighlightedSkills.slice(0, 3).join(", ")}, я фокусуюся на побудові стабільних, масштабованих систем та вирішенні нетривіальних інженерних викликів.
 
@@ -542,11 +635,14 @@ ${domainParagraph}
 З повагою,
 ${profile.fullName}
 ${profile.title}`;
+    }
+  }
 
   return {
     jobId: job.id,
     subjectLine,
     content,
+    length,
   };
 }
 

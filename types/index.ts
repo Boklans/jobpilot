@@ -67,10 +67,13 @@ export interface TailoredCVResult {
   atsKeywordsAdded: string[];
 }
 
+export type CoverLetterLength = 'short' | 'standard' | 'full';
+
 export interface CoverLetterResult {
   jobId: string;
   content: string;
   subjectLine: string;
+  length?: CoverLetterLength;
 }
 
 export type ApplicationStatus = 'saved' | 'applied' | 'interview' | 'offer' | 'rejected';

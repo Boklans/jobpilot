@@ -72,6 +72,11 @@ export const translations = {
       copiedSubject: "Тему скопійовано!",
       copyLetter: "Скопіювати лист",
       copied: "Скопійовано!",
+      clLengthShort: "⚡ Короткий (Djinni / LinkedIn)",
+      clLengthStandard: "📄 Стандартний (Форми)",
+      clLengthFull: "✉️ Розгорнутий (Email)",
+      charCountLabel: "символів",
+      wordCountLabel: "слів",
       skillsCount: "навичок",
     },
     tracker: {
@@ -191,6 +196,11 @@ export const translations = {
       copiedSubject: "Subject Copied!",
       copyLetter: "Copy Letter",
       copied: "Copied!",
+      clLengthShort: "⚡ Short (Djinni / LinkedIn)",
+      clLengthStandard: "📄 Standard (Web Forms)",
+      clLengthFull: "✉️ Detailed (Email)",
+      charCountLabel: "chars",
+      wordCountLabel: "words",
       skillsCount: "skills",
     },
     tracker: {
