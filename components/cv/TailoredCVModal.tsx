@@ -41,7 +41,7 @@ export function TailoredCVModal({
   <style>
     @page {
       size: A4 portrait;
-      margin: 12mm 15mm;
+      margin: 8mm 12mm;
     }
     * {
       box-sizing: border-box;
@@ -54,62 +54,62 @@ export function TailoredCVModal({
       background: #ffffff;
       margin: 0;
       padding: 0;
-      line-height: 1.45;
-      font-size: 10pt;
+      line-height: 1.32;
+      font-size: 9pt;
     }
     h1 {
-      font-size: 22pt;
+      font-size: 18pt;
       margin: 0 0 2pt 0;
       color: #0f172a;
       font-weight: 800;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.4px;
     }
     .subtitle {
-      font-size: 11pt;
+      font-size: 10pt;
       font-weight: 700;
       color: #1d4ed8;
       margin: 0;
     }
     .meta {
-      font-size: 9pt;
+      font-size: 8.5pt;
       color: #64748b;
       text-align: right;
     }
     .header-bar {
-      border-bottom: 2px solid #0f172a;
-      padding-bottom: 8pt;
-      margin-bottom: 12pt;
+      border-bottom: 1.5px solid #0f172a;
+      padding-bottom: 5pt;
+      margin-bottom: 7pt;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
     h2 {
-      font-size: 10pt;
+      font-size: 9pt;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.6px;
       border-bottom: 1px solid #cbd5e1;
-      padding-bottom: 3pt;
-      margin-top: 12pt;
-      margin-bottom: 6pt;
+      padding-bottom: 2pt;
+      margin-top: 7pt;
+      margin-bottom: 4pt;
       color: #1e293b;
     }
-    p { margin: 0 0 6pt 0; text-align: justify; }
-    .skills-wrap { display: flex; flex-wrap: wrap; gap: 4pt; margin-bottom: 8pt; }
+    p { margin: 0 0 4pt 0; text-align: justify; font-size: 8.8pt; line-height: 1.32; }
+    .skills-wrap { display: flex; flex-wrap: wrap; gap: 3pt; margin-bottom: 5pt; }
     .skill-pill {
       background: #f1f5f9;
       border: 1px solid #cbd5e1;
-      padding: 2pt 6pt;
+      padding: 1.5pt 5pt;
       border-radius: 3pt;
-      font-size: 8.5pt;
+      font-size: 7.8pt;
       font-weight: 600;
       color: #1e293b;
     }
-    .exp-item { margin-bottom: 10pt; page-break-inside: avoid; break-inside: avoid; }
-    .exp-header { font-weight: 700; font-size: 10pt; color: #0f172a; }
+    .exp-item { margin-bottom: 6pt; page-break-inside: avoid; break-inside: avoid; }
+    .exp-header { font-weight: 700; font-size: 9pt; color: #0f172a; }
     .exp-company { font-weight: 400; color: #64748b; }
-    ul { margin: 4pt 0 6pt 0; padding-left: 16pt; }
-    li { margin-bottom: 3pt; font-size: 9.5pt; color: #334155; }
+    ul { margin: 2pt 0 3pt 0; padding-left: 13pt; }
+    li { margin-bottom: 1.5pt; font-size: 8.5pt; color: #334155; line-height: 1.32; }
   </style>
 </head>
 <body>
@@ -151,8 +151,10 @@ export function TailoredCVModal({
       setTimeout(function() {
         window.focus();
         window.print();
-        setTimeout(function() { window.close(); }, 500);
-      }, 250);
+        window.onafterprint = function() {
+          try { window.close(); } catch(e) {}
+        };
+      }, 200);
     };
   </script>
 </body>
@@ -333,6 +335,16 @@ ${exp.bullets.map((b) => `• ${b}`).join("\n")}`
               <X className="w-5 h-5" />
             </button>
           </div>
+        </div>
+
+        {/* Quick Hint for Windows Print-to-PDF */}
+        <div className="px-5 py-2 bg-blue-50/60 border-b border-blue-100 flex items-center justify-between text-[11px] text-blue-900 print:hidden">
+          <span className="flex items-center gap-1.5 font-medium">
+            💡 <strong>Порада:</strong> У вікні виберіть <em>«Microsoft Print to PDF»</em> (або <em>«Зберегти як PDF»</em>) і натисніть кнопку <strong>«Друк»</strong> — файл збережеться як .pdf.
+          </span>
+          <span className="hidden sm:inline text-blue-700/80">
+            Або тисніть <strong>«Зберегти Word»</strong> для миттєвого завантаження файлу
+          </span>
         </div>
 
         {/* CV Document Container */}

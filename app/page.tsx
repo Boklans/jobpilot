@@ -171,6 +171,12 @@ export default function HomePage() {
       const analysis = await analyzeJobMatch(activeCandidate, job);
       setCurrentAnalyses((prev) => [{ job, analysis }, ...prev]);
       setActiveTab("analyze");
+      setTimeout(() => {
+        const el = document.getElementById(`job-analysis-${job.id}`) || document.getElementById("analyzed-results-section");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 150);
     } finally {
       setIsAnalyzing(false);
     }
@@ -292,7 +298,13 @@ export default function HomePage() {
                   {currentAnalyses.slice(0, 4).map(({ job, analysis }) => (
                     <div
                       key={job.id}
-                      onClick={() => setActiveTab("analyze")}
+                      onClick={() => {
+                        setActiveTab("analyze");
+                        setTimeout(() => {
+                          const el = document.getElementById(`job-analysis-${job.id}`);
+                          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }, 100);
+                      }}
                       className="group bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -417,7 +429,7 @@ export default function HomePage() {
           <div className="space-y-6 animate-in fade-in duration-300">
             <AddJobForm onAnalyze={handleAnalyzeNewJob} isLoading={isAnalyzing} />
 
-            <div className="space-y-4">
+            <div id="analyzed-results-section" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-slate-900">
                   {lang === "en" ? "Analyzed Vacancies" : "Аналіз вакансій"} ({currentAnalyses.length})

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   MatchAnalysisResult, 
   JobListing, 
@@ -40,10 +40,12 @@ interface MatchAnalysisCardProps {
 export function MatchAnalysisCard({ 
   job, 
   analysis, 
-  candidate,
+  candidate, 
   onAddToTracker,
   onDeleteJob
 }: MatchAnalysisCardProps) {
+  const tailoredCVRef = useRef<HTMLDivElement>(null);
+  const coverLetterRef = useRef<HTMLDivElement>(null);
   const [tailoredCV, setTailoredCV] = useState<TailoredCVResult | null>(null);
   const [coverLetter, setCoverLetter] = useState<CoverLetterResult | null>(null);
   const [isGeneratingCV, setIsGeneratingCV] = useState(false);
@@ -66,6 +68,9 @@ export function MatchAnalysisCard({
     try {
       const res = await generateTailoredCV(candidate, job, analysis, "en");
       setTailoredCV(res);
+      setTimeout(() => {
+        tailoredCVRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     } finally {
       setIsGeneratingCV(false);
     }
@@ -78,6 +83,9 @@ export function MatchAnalysisCard({
       const res = await generateCoverLetter(candidate, job, l);
       setCoverLetter(res);
       setClLang(l);
+      setTimeout(() => {
+        coverLetterRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     } finally {
       setIsGeneratingCL(false);
     }
@@ -97,7 +105,7 @@ export function MatchAnalysisCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden mb-8 transition-all hover:shadow-md">
+    <div id={`job-analysis-${job.id}`} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden mb-8 transition-all hover:shadow-md">
       {/* Header section */}
       <div className="p-6 sm:p-7 border-b border-slate-100 bg-gradient-to-b from-slate-50/50 to-white">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -322,7 +330,7 @@ export function MatchAnalysisCard({
 
         {/* Generated Tailored CV Panel */}
         {tailoredCV && (
-          <div className="mt-6 border border-blue-200 bg-blue-50/40 rounded-2xl p-5 space-y-4 animate-in fade-in">
+          <div ref={tailoredCVRef} className="mt-6 border border-blue-200 bg-blue-50/40 rounded-2xl p-5 space-y-4 animate-in fade-in">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
                 <FileEdit className="w-4 h-4 text-blue-600" />
@@ -407,7 +415,7 @@ export function MatchAnalysisCard({
 
         {/* Generated Cover Letter Panel */}
         {coverLetter && (
-          <div className="mt-6 border border-slate-300 bg-slate-50/70 rounded-2xl p-5 space-y-4 animate-in fade-in">
+          <div ref={coverLetterRef} className="mt-6 border border-slate-300 bg-slate-50/70 rounded-2xl p-5 space-y-4 animate-in fade-in">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
                 <Mail className="w-4 h-4 text-blue-600" />
