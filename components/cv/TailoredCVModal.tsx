@@ -33,20 +33,76 @@ export function TailoredCVModal({
   const isEn = lang === "en";
 
   const getStyleCSS = (style: CVStyle) => {
+    // Base CSS provides identical repeating top & bottom margins on EVERY printed page
+    // via table-header-group and table-footer-group, while keeping browser headers/footers removed.
+    const baseCSS = `
+      body {
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        background: #ffffff;
+        margin: 0;
+        padding: 0 16mm;
+        line-height: 1.45;
+        font-size: 9.5pt;
+        font-weight: 400;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: geometricPrecision;
+      }
+      table.page-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: none;
+        margin: 0;
+        padding: 0;
+      }
+      thead.page-header-space {
+        display: table-header-group;
+      }
+      tfoot.page-footer-space {
+        display: table-footer-group;
+      }
+      td.page-header-cell {
+        height: 14mm;
+        line-height: 14mm;
+        font-size: 1pt;
+        color: transparent;
+        padding: 0;
+        margin: 0;
+        border: none;
+      }
+      td.page-footer-cell {
+        height: 14mm;
+        line-height: 14mm;
+        font-size: 1pt;
+        color: transparent;
+        padding: 0;
+        margin: 0;
+        border: none;
+      }
+      td.page-content-cell {
+        padding: 0;
+        margin: 0;
+        border: none;
+        vertical-align: top;
+      }
+      h2 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+      .exp-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .exp-header-row {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+    `;
+
     if (style === "silicon") {
-      return `
+      return baseCSS + `
         body {
-          font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
           color: #0f172a;
-          background: #ffffff;
-          margin: 0;
-          padding: 14mm 16mm;
-          line-height: 1.45;
-          font-size: 9.5pt;
-          font-weight: 400;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-          text-rendering: geometricPrecision;
         }
         h1 {
           font-size: 21pt;
@@ -112,8 +168,6 @@ export function TailoredCVModal({
         }
         .exp-item {
           margin-bottom: 9pt;
-          page-break-inside: avoid;
-          break-inside: avoid;
         }
         .exp-header-row {
           display: flex;
@@ -156,19 +210,9 @@ export function TailoredCVModal({
     }
 
     if (style === "modern") {
-      return `
+      return baseCSS + `
         body {
-          font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
           color: #0f172a;
-          background: #ffffff;
-          margin: 0;
-          padding: 14mm 16mm;
-          line-height: 1.45;
-          font-size: 9.5pt;
-          font-weight: 400;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-          text-rendering: geometricPrecision;
         }
         h1 {
           font-size: 22pt;
@@ -235,8 +279,6 @@ export function TailoredCVModal({
         }
         .exp-item {
           margin-bottom: 9pt;
-          page-break-inside: avoid;
-          break-inside: avoid;
         }
         .exp-header-row {
           display: flex;
@@ -277,19 +319,9 @@ export function TailoredCVModal({
     }
 
     // minimal / ATS classic
-    return `
+    return baseCSS + `
       body {
-        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
         color: #111827;
-        background: #ffffff;
-        margin: 0;
-        padding: 14mm 16mm;
-        line-height: 1.45;
-        font-size: 9.5pt;
-        font-weight: 400;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: geometricPrecision;
       }
       h1 {
         font-size: 20pt;
@@ -345,8 +377,6 @@ export function TailoredCVModal({
       }
       .exp-item {
         margin-bottom: 8pt;
-        page-break-inside: avoid;
-        break-inside: avoid;
       }
       .exp-header-row {
         display: flex;
@@ -417,43 +447,61 @@ export function TailoredCVModal({
   </style>
 </head>
 <body>
-  <div class="header-bar">
-    <div>
-      <h1>${cleanName}</h1>
-      <div class="subtitle">${cleanTitle}</div>
-    </div>
-    <div class="meta">
-      <div><strong>${candidate.yearsOfExperience}+ ${isEn ? "years of experience" : "років досвіду"}</strong></div>
-      <div>Ukraine · Available Immediately</div>
-    </div>
-  </div>
+  <table class="page-table">
+    <thead class="page-header-space">
+      <tr>
+        <td class="page-header-cell">&nbsp;</td>
+      </tr>
+    </thead>
+    <tbody class="page-content-space">
+      <tr>
+        <td class="page-content-cell">
+          <div class="header-bar">
+            <div>
+              <h1>${cleanName}</h1>
+              <div class="subtitle">${cleanTitle}</div>
+            </div>
+            <div class="meta">
+              <div><strong>${candidate.yearsOfExperience}+ ${isEn ? "years of experience" : "років досвіду"}</strong></div>
+              <div>Ukraine · Available Immediately</div>
+            </div>
+          </div>
 
-  <h2>${isEn ? "Professional Summary" : "Професійний підсумок"}</h2>
-  <p>${tailoredCV.tailoredSummary}</p>
+          <h2>${isEn ? "Professional Summary" : "Професійний підсумок"}</h2>
+          <p>${tailoredCV.tailoredSummary}</p>
 
-  <h2>${isEn ? "Technical Skills & Competencies" : "Технічні навички"}</h2>
-  ${skillsHtml}
+          <h2>${isEn ? "Technical Skills & Competencies" : "Технічні навички"}</h2>
+          ${skillsHtml}
 
-  <h2>${isEn ? "Professional Experience" : "Досвід роботи"}</h2>
-  ${tailoredCV.optimizedExperiences
-    .map((exp, idx) => {
-      const period = exp.period || candidate.experiences.find((e) => e.company.toLowerCase() === exp.company.toLowerCase())?.period || candidate.experiences[idx]?.period || "";
-      return `
-    <div class="exp-item">
-      <div class="exp-header-row">
-        <div>
-          <span class="exp-position">${exp.position}</span>
-          <span class="exp-company"> | ${exp.company}</span>
-        </div>
-        ${period ? `<div class="exp-period">${period}</div>` : ""}
-      </div>
-      <ul>
-        ${exp.bullets.map((b) => `<li>${b}</li>`).join("")}
-      </ul>
-    </div>
-  `;
-    })
-    .join("")}
+          <h2>${isEn ? "Professional Experience" : "Досвід роботи"}</h2>
+          ${tailoredCV.optimizedExperiences
+            .map((exp, idx) => {
+              const period = exp.period || candidate.experiences.find((e) => e.company.toLowerCase() === exp.company.toLowerCase())?.period || candidate.experiences[idx]?.period || "";
+              return `
+            <div class="exp-item">
+              <div class="exp-header-row">
+                <div>
+                  <span class="exp-position">${exp.position}</span>
+                  <span class="exp-company"> | ${exp.company}</span>
+                </div>
+                ${period ? `<div class="exp-period">${period}</div>` : ""}
+              </div>
+              <ul>
+                ${exp.bullets.map((b) => `<li>${b}</li>`).join("")}
+              </ul>
+            </div>
+          `;
+            })
+            .join("")}
+        </td>
+      </tr>
+    </tbody>
+    <tfoot class="page-footer-space">
+      <tr>
+        <td class="page-footer-cell">&nbsp;</td>
+      </tr>
+    </tfoot>
+  </table>
 
   <script>
     window.onload = function() {
@@ -698,7 +746,7 @@ ${exp.bullets.map((b) => `• ${b}`).join("\n")}`;
         {/* Quick Hint for PDF Auto-naming & Style */}
         <div className="px-5 py-2.5 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between text-[11px] text-blue-900 print:hidden">
           <span className="flex items-center gap-1.5 font-medium">
-            💡 <strong>Автозбереження:</strong> Файл зберігається як <em>«{cleanName} - {cleanTitle}.pdf»</em> без зайвих системних дат і URL браузера.
+            💡 <strong>Багатосторінковий друк:</strong> Верхні та нижні поля автоматично зберігаються на 1-й, 2-й та всіх наступних сторінках без зайвих браузерних дат і URL.
           </span>
           <span className="hidden sm:inline text-blue-700/90 font-medium">
             Вибрано стиль: <strong>{cvStyle === "silicon" ? "⚡ Silicon Tech" : cvStyle === "modern" ? "👔 Executive Modern" : "📄 ATS Minimal"}</strong>
