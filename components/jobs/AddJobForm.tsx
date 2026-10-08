@@ -96,25 +96,49 @@ export function AddJobForm({ onAnalyze, isLoading, lang = "ua" }: AddJobFormProp
     onAnalyze(newJob);
   };
 
-  const handleFillSample = () => {
-    setInputText(`Senior React Native & Mobile Engineer at Nordic FinTech
-Salary: $4,500 - $6,000 · Remote (Europe)
+    const sampleFintech = `Senior .NET Developer at Lime Systems
+Salary: $4,000 - $5,500 · Kyiv / Remote
 
-About the role:
-We are looking for a Senior React Native Engineer to lead the mobile engineering effort for our core banking product.
+About Lime Systems:
+Розробник автоматизованих банківських систем та програмного забезпечення для провідних банків України.
 
-Key Requirements:
-- 5+ years of software engineering experience
-- Strong proficiency in React Native, TypeScript, and Expo
-- Production experience with REST APIs and state management (Zustand/Redux)
-- Critical: Solid experience with GraphQL queries and schema design
-- AWS cloud knowledge and Docker are a big plus
-- Upper-Intermediate English or higher`);
-  };
+Вимоги:
+- 5+ років комерційного досвіду з C# та .NET Core / ASP.NET Core
+- Глибокі знання MS SQL Server (T-SQL, збережені процедури, індекси, оптимізація запитів)
+- Розуміння високонавантажених фінансових транзакцій, ACID та цілісності даних
+- Досвід побудови RESTful API та оптимізації швидкодії бекенд-сервісів
+- Досвід роботи з Docker та Git`;
+
+    const sampleCloud = `Senior .NET Software Engineer at Murano Software
+Salary: $4,500 - $6,000 · Remote
+
+About the Project:
+Cloud-native enterprise platform processing high-volume asynchronous message queues.
+
+Requirements:
+- 5+ років досвіду з C#, .NET 8, ASP.NET Core
+- Strong experience designing distributed microservices architectures
+- Hands-on expertise with Docker, Kubernetes, and automated CI/CD pipelines
+- Experience with cloud services (AWS or Azure) and message brokers (RabbitMQ/Kafka)
+- Clean Architecture, SOLID, and Automated Integration Testing (xUnit)
+- Upper-Intermediate English (B2+)`;
+
+    const sampleMismatch = `Senior Full-Stack Developer (Node.js & Angular) at PrivatBank
+Salary: $3,500 - $4,500 · Дніпро / Remote
+
+Опис вакансії:
+ПриватБанк шукає досвідченого Senior розробника для розвитку клієнтських веб-сервісів Приват24.
+
+Ключові вимоги:
+- 5+ років комерційного досвіду Frontend розробки на Angular 16+ та TypeScript
+- Глибокі знання Node.js (NestJS / Express) для розробки мікросервісних BFF
+- RxJS, State Management (NgRx), HTML5, SCSS, WebSockets
+- Досвід з NoSQL (MongoDB) та Redis
+- Навички оптимізації Web Vitals та безпеки веб-додатків`;
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-8 mb-8 transition-all">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
             <Bot className="w-4 h-4" />
@@ -128,13 +152,36 @@ Key Requirements:
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleFillSample}
-          className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 transition border border-slate-200 self-start sm:self-auto shrink-0"
-        >
-          {t.sampleBtn}
-        </button>
+        {/* 3 Presets in 1 click */}
+        <div className="flex flex-wrap items-center gap-1.5 self-start md:self-auto shrink-0">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block sm:hidden w-full mb-1">
+            {t.presetsLabel}
+          </span>
+          <button
+            type="button"
+            onClick={() => setInputText(sampleFintech)}
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 transition border border-slate-200 shadow-2xs"
+            title="Lime Systems FinTech .NET"
+          >
+            {t.presetFintech}
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputText(sampleCloud)}
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 transition border border-slate-200 shadow-2xs"
+            title="Murano Cloud Microservices"
+          >
+            {t.presetCloud}
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputText(sampleMismatch)}
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition border border-rose-200 shadow-2xs"
+            title="PrivatBank Angular/Node Mismatch Test"
+          >
+            {t.presetMismatch}
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">

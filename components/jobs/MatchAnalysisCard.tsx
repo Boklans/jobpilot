@@ -26,7 +26,8 @@ import {
   DollarSign,
   Printer,
   Trash2,
-  Target
+  Target,
+  Download
 } from "lucide-react";
 import { generateTailoredCV, generateCoverLetter } from "@/lib/ai/matcher";
 import { TailoredCVModal } from "@/components/cv/TailoredCVModal";
@@ -121,6 +122,172 @@ export function MatchAnalysisCard({
       setCopiedCL(true);
       setTimeout(() => setCopiedCL(false), 2000);
     }
+  };
+
+  const handleDownloadTxt = () => {
+    if (!coverLetter) return;
+    const sanitizedName = candidate.fullName.replace(/[^a-zA-Zа-яА-Я0-9]/g, "_");
+    const sanitizedCompany = job.company.replace(/[^a-zA-Zа-яА-Я0-9]/g, "_");
+    const fileName = `Cover_Letter_${sanitizedName}_${sanitizedCompany}.txt`;
+
+    const fileContent = [
+      `${candidate.fullName} | ${candidate.title}`,
+      `Vacancy: ${job.title} at ${job.company}`,
+      coverLetter.subjectLine ? `Subject: ${coverLetter.subjectLine}` : "",
+      "--------------------------------------------------",
+      "",
+      coverLetter.content
+    ].filter(Boolean).join("\n");
+
+    const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrintCoverLetter = () => {
+    if (!coverLetter) return;
+    const printWindow = window.open("", "_blank", "width=850,height=1100");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const documentTitle = `${candidate.fullName} - Cover Letter - ${job.company}`;
+    const dateFormatted = new Date().toLocaleDateString(clLang === "ua" ? "uk-UA" : "en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="${clLang}">
+<head>
+  <meta charset="utf-8" />
+  <title>${documentTitle}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 20mm 22mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      font-size: 10pt;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 10pt;
+      margin-bottom: 16pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .name {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 2pt 0;
+      letter-spacing: -0.3px;
+    }
+    .title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #2563eb;
+      margin: 0;
+    }
+    .date {
+      font-size: 9pt;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .recipient-block {
+      margin-bottom: 16pt;
+      font-size: 9.5pt;
+      color: #334155;
+    }
+    .recipient-role {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 10.5pt;
+    }
+    .subject-block {
+      background: #f8fafc;
+      border-left: 3px solid #2563eb;
+      padding: 7pt 10pt;
+      margin-bottom: 16pt;
+      font-weight: 600;
+      font-size: 9.5pt;
+      color: #0f172a;
+    }
+    .content {
+      white-space: pre-line;
+      color: #1e293b;
+      font-size: 10pt;
+      line-height: 1.65;
+      text-align: justify;
+    }
+    .footer {
+      margin-top: 36pt;
+      padding-top: 8pt;
+      border-top: 1px solid #e2e8f0;
+      font-size: 8.5pt;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="name">${candidate.fullName}</div>
+      <div class="title">${candidate.title}</div>
+    </div>
+    <div class="date">${dateFormatted}</div>
+  </div>
+  <div class="recipient-block">
+    <div style="font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 2pt;">${clLang === "ua" ? "Подання на вакансію:" : "Application for:"}</div>
+    <div class="recipient-role">${job.title}</div>
+    <div>${job.company} • ${job.location}</div>
+  </div>
+  ${coverLetter.subjectLine ? `<div class="subject-block"><strong>${clLang === "ua" ? "Тема:" : "Subject:"}</strong> ${coverLetter.subjectLine}</div>` : ""}
+  <div class="content">${coverLetter.content}</div>
+  <div class="footer">
+    <span>Prepared via JobPilot</span>
+    <span>${job.company} — ${job.title}</span>
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+        window.onafterprint = function() {
+          try { window.close(); } catch(e) {}
+        };
+      }, 250);
+    };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const handleTrackerClick = () => {
@@ -590,6 +757,24 @@ export function MatchAnalysisCard({
                 >
                   {copiedCL ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedCL ? t.copied : t.copyLetter}</span>
+                </button>
+
+                <button
+                  onClick={handleDownloadTxt}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-100 transition shadow-2xs"
+                  title={isEn ? "Download as .txt" : "Завантажити у форматі .txt"}
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-600" />
+                  <span>{t.downloadTxt}</span>
+                </button>
+
+                <button
+                  onClick={handlePrintCoverLetter}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition shadow-2xs"
+                  title={isEn ? "Print or Save as PDF" : "Друкувати або зберегти як PDF"}
+                >
+                  <Printer className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{t.printPdf}</span>
                 </button>
               </div>
             </div>

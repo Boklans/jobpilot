@@ -1,20 +1,24 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { CandidateProfile, ExperienceItem } from "@/types";
-import { User, Briefcase, Plus, X, UploadCloud, CheckCircle2, Edit3, Save, Trash2 } from "lucide-react";
+import { User, Briefcase, Plus, X, UploadCloud, CheckCircle2, Edit3, Save, Trash2, Download, Database } from "lucide-react";
 import { translations, Language } from "@/lib/translations";
 
 interface CandidateProfileViewProps {
   profile: CandidateProfile;
   onUpdateProfile: (updated: CandidateProfile) => void;
   lang?: Language;
+  onExportBackup?: () => void;
+  onImportBackup?: (file: File) => Promise<boolean>;
 }
 
 export function CandidateProfileView({ 
   profile, 
   onUpdateProfile, 
-  lang = "ua" 
+  lang = "ua",
+  onExportBackup,
+  onImportBackup
 }: CandidateProfileViewProps) {
   const t = translations[lang].profile;
 
@@ -34,6 +38,26 @@ export function CandidateProfileView({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+
+  // Backup & Restore state
+  const backupFileInputRef = useRef<HTMLInputElement>(null);
+  const [backupStatus, setBackupStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const handleBackupFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (onImportBackup) {
+      try {
+        await onImportBackup(file);
+        setBackupStatus({ type: "success", message: t.backupSuccess });
+        setTimeout(() => setBackupStatus(null), 4000);
+      } catch (err) {
+        setBackupStatus({ type: "error", message: t.backupError });
+        setTimeout(() => setBackupStatus(null), 5000);
+      }
+    }
+    if (e.target) e.target.value = "";
+  };
 
   // Sync state whenever active profile changes
   useEffect(() => {
@@ -612,6 +636,61 @@ export function CandidateProfileView({
               </div>
             )}
           </div>
+        </div>
+
+        {/* DATA BACKUP & RESTORE SECTION */}
+        <div className="p-6 sm:p-7 bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                  <Database className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-slate-900 text-base">{t.dataSectionTitle}</h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                {t.dataSectionSub}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <input
+                ref={backupFileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleBackupFileSelect}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={onExportBackup}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-300 text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-xs font-bold rounded-xl transition shadow-2xs"
+              >
+                <Download className="w-4 h-4 text-slate-600" />
+                <span>{t.exportBackupBtn}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => backupFileInputRef.current?.click()}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl transition shadow-sm shadow-indigo-100"
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>{t.importBackupBtn}</span>
+              </button>
+            </div>
+          </div>
+
+          {backupStatus && (
+            <div className={`p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200 ${
+              backupStatus.type === "success" 
+                ? "bg-emerald-50 text-emerald-800 border border-emerald-200" 
+                : "bg-rose-50 text-rose-800 border border-rose-200"
+            }`}>
+              {backupStatus.type === "success" ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <X className="w-4 h-4 text-rose-600 shrink-0" />}
+              <span>{backupStatus.message}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

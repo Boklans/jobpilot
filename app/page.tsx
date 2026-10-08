@@ -243,6 +243,66 @@ export default function HomePage() {
     setApplications((prev) => prev.filter((app) => app.id !== id));
   };
 
+  const handleExportBackup = () => {
+    const backupData = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      lang,
+      candidates,
+      activeCandidateId,
+      currentAnalyses,
+      applications,
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `jobpilot-backup-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportBackup = (file: File): Promise<boolean> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const data = JSON.parse(text);
+          if (!data || typeof data !== "object") {
+            throw new Error("Invalid format");
+          }
+
+          if (Array.isArray(data.candidates) && data.candidates.length > 0) {
+            setCandidates(data.candidates);
+          }
+          if (data.activeCandidateId) {
+            setActiveCandidateId(data.activeCandidateId);
+          }
+          if (data.lang === "ua" || data.lang === "en") {
+            setLang(data.lang);
+          }
+          if (Array.isArray(data.currentAnalyses)) {
+            setCurrentAnalyses(data.currentAnalyses);
+          }
+          if (Array.isArray(data.applications)) {
+            setApplications(data.applications);
+          }
+
+          resolve(true);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error("File read error"));
+      reader.readAsText(file);
+    });
+  };
+
   const dt = translations[lang].dashboard;
   const isEn = lang === "en";
 
@@ -537,6 +597,8 @@ export default function HomePage() {
               profile={activeCandidate}
               onUpdateProfile={handleUpdateActiveProfile}
               lang={lang}
+              onExportBackup={handleExportBackup}
+              onImportBackup={handleImportBackup}
             />
           </div>
         )}
