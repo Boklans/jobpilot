@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { generateTailoredCV, generateCoverLetter } from "@/lib/ai/matcher";
 import { TailoredCVModal } from "@/components/cv/TailoredCVModal";
-import { smoothScrollTo } from "@/lib/utils";
+import { smoothScrollTo, scrollIntoCenter } from "@/lib/utils";
 
 interface MatchAnalysisCardProps {
   job: JobListing;
@@ -70,23 +70,25 @@ export function MatchAnalysisCard({
       const res = await generateTailoredCV(candidate, job, analysis, "en");
       setTailoredCV(res);
       setTimeout(() => {
-        smoothScrollTo(tailoredCVRef.current, 85);
+        scrollIntoCenter(tailoredCVRef.current);
       }, 100);
     } finally {
       setIsGeneratingCV(false);
     }
   };
 
-  const handleCoverLetter = async (targetLang?: "en" | "ua") => {
+  const handleCoverLetter = async (targetLang?: "en" | "ua", shouldScroll: boolean = false) => {
     const l = targetLang || clLang;
     setIsGeneratingCL(true);
     try {
       const res = await generateCoverLetter(candidate, job, l);
       setCoverLetter(res);
       setClLang(l);
-      setTimeout(() => {
-        smoothScrollTo(coverLetterRef.current, 85);
-      }, 100);
+      if (shouldScroll) {
+        setTimeout(() => {
+          scrollIntoCenter(coverLetterRef.current);
+        }, 100);
+      }
     } finally {
       setIsGeneratingCL(false);
     }
@@ -283,7 +285,7 @@ export function MatchAnalysisCard({
           </button>
 
           <button
-            onClick={() => handleCoverLetter()}
+            onClick={() => handleCoverLetter(undefined, true)}
             disabled={isGeneratingCL}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition active:scale-[0.98] disabled:opacity-50"
           >
@@ -427,7 +429,7 @@ export function MatchAnalysisCard({
                 {/* Language Toggle */}
                 <div className="flex items-center bg-white border border-slate-300 rounded-lg p-0.5 text-xs font-semibold">
                   <button
-                    onClick={() => handleCoverLetter("en")}
+                    onClick={() => handleCoverLetter("en", false)}
                     disabled={isGeneratingCL}
                     className={`px-2.5 py-1 rounded transition ${
                       clLang === "en" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
@@ -436,7 +438,7 @@ export function MatchAnalysisCard({
                     🇬🇧 English
                   </button>
                   <button
-                    onClick={() => handleCoverLetter("ua")}
+                    onClick={() => handleCoverLetter("ua", false)}
                     disabled={isGeneratingCL}
                     className={`px-2.5 py-1 rounded transition ${
                       clLang === "ua" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"

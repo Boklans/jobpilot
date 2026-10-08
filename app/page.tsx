@@ -19,7 +19,7 @@ import {
   ApplicationStatus 
 } from "@/types";
 import { analyzeJobMatch } from "@/lib/ai/matcher";
-import { smoothScrollTo } from "@/lib/utils";
+import { smoothScrollTo, scrollIntoCenter } from "@/lib/utils";
 import { 
   Sparkles, 
   Briefcase, 
@@ -175,7 +175,7 @@ export default function HomePage() {
       setTimeout(() => {
         const el = document.getElementById(`job-analysis-${job.id}`) || document.getElementById("analyzed-results-section");
         if (el) {
-          smoothScrollTo(el, 80);
+          scrollIntoCenter(el);
         }
       }, 150);
     } finally {
@@ -303,7 +303,7 @@ export default function HomePage() {
                         setActiveTab("analyze");
                         setTimeout(() => {
                           const el = document.getElementById(`job-analysis-${job.id}`);
-                          if (el) smoothScrollTo(el, 80);
+                          if (el) scrollIntoCenter(el);
                         }, 100);
                       }}
                       className="group bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"

@@ -6,6 +6,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Smoothly scrolls the window to an element centered vertically in the viewport.
+ */
+export function scrollIntoCenter(element: HTMLElement | null) {
+  if (!element) return;
+  element.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+}
+
+/**
  * Smoothly scrolls the window to an element with offset for sticky headers.
  */
 export function smoothScrollTo(element: HTMLElement | null, offset: number = 85) {
