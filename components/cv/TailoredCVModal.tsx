@@ -41,7 +41,7 @@ export function TailoredCVModal({
   <style>
     @page {
       size: A4 portrait;
-      margin: 8mm 12mm;
+      margin: 12mm 15mm;
     }
     * {
       box-sizing: border-box;
@@ -49,67 +49,112 @@ export function TailoredCVModal({
       print-color-adjust: exact;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #0f172a;
       background: #ffffff;
       margin: 0;
       padding: 0;
-      line-height: 1.32;
-      font-size: 9pt;
+      line-height: 1.45;
+      font-size: 10pt;
     }
     h1 {
-      font-size: 18pt;
+      font-size: 22pt;
       margin: 0 0 2pt 0;
       color: #0f172a;
       font-weight: 800;
       letter-spacing: -0.4px;
     }
     .subtitle {
-      font-size: 10pt;
+      font-size: 11.5pt;
       font-weight: 700;
-      color: #1d4ed8;
+      color: #2563eb;
       margin: 0;
     }
     .meta {
-      font-size: 8.5pt;
-      color: #64748b;
+      font-size: 9pt;
+      color: #475569;
       text-align: right;
+      line-height: 1.4;
     }
     .header-bar {
-      border-bottom: 1.5px solid #0f172a;
-      padding-bottom: 5pt;
-      margin-bottom: 7pt;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 7pt;
+      margin-bottom: 10pt;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
     h2 {
-      font-size: 9pt;
+      font-size: 10.5pt;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      border-bottom: 1px solid #cbd5e1;
-      padding-bottom: 2pt;
-      margin-top: 7pt;
-      margin-bottom: 4pt;
-      color: #1e293b;
+      border-bottom: 1.5px solid #0f172a;
+      padding-bottom: 3pt;
+      margin-top: 12pt;
+      margin-bottom: 6pt;
+      color: #0f172a;
     }
-    p { margin: 0 0 4pt 0; text-align: justify; font-size: 8.8pt; line-height: 1.32; }
-    .skills-wrap { display: flex; flex-wrap: wrap; gap: 3pt; margin-bottom: 5pt; }
+    p {
+      margin: 0 0 5pt 0;
+      text-align: justify;
+      font-size: 9.5pt;
+      line-height: 1.45;
+      color: #334155;
+    }
+    .skills-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4pt;
+      margin-bottom: 8pt;
+    }
     .skill-pill {
-      background: #f1f5f9;
+      background: #f8fafc;
       border: 1px solid #cbd5e1;
-      padding: 1.5pt 5pt;
-      border-radius: 3pt;
-      font-size: 7.8pt;
+      padding: 2.5pt 6.5pt;
+      border-radius: 4pt;
+      font-size: 8.5pt;
       font-weight: 600;
       color: #1e293b;
     }
-    .exp-item { margin-bottom: 6pt; page-break-inside: avoid; break-inside: avoid; }
-    .exp-header { font-weight: 700; font-size: 9pt; color: #0f172a; }
-    .exp-company { font-weight: 400; color: #64748b; }
-    ul { margin: 2pt 0 3pt 0; padding-left: 13pt; }
-    li { margin-bottom: 1.5pt; font-size: 8.5pt; color: #334155; line-height: 1.32; }
+    .exp-item {
+      margin-bottom: 9pt;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .exp-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 2pt;
+    }
+    .exp-position {
+      font-weight: 700;
+      font-size: 10.5pt;
+      color: #0f172a;
+    }
+    .exp-company {
+      font-weight: 500;
+      font-size: 10pt;
+      color: #475569;
+    }
+    .exp-period {
+      font-weight: 600;
+      font-size: 9pt;
+      color: #64748b;
+      text-align: right;
+      white-space: nowrap;
+    }
+    ul {
+      margin: 2.5pt 0 5pt 0;
+      padding-left: 14pt;
+    }
+    li {
+      margin-bottom: 2pt;
+      font-size: 9.2pt;
+      color: #334155;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -134,16 +179,23 @@ export function TailoredCVModal({
 
   <h2>${isEn ? "Professional Experience" : "Досвід роботи"}</h2>
   ${tailoredCV.optimizedExperiences
-    .map(
-      (exp) => `
+    .map((exp, idx) => {
+      const period = exp.period || candidate.experiences.find((e) => e.company.toLowerCase() === exp.company.toLowerCase())?.period || candidate.experiences[idx]?.period || "";
+      return `
     <div class="exp-item">
-      <div class="exp-header">${exp.position} <span class="exp-company">| ${exp.company}</span></div>
+      <div class="exp-header-row">
+        <div>
+          <span class="exp-position">${exp.position}</span>
+          <span class="exp-company"> | ${exp.company}</span>
+        </div>
+        ${period ? `<div class="exp-period">${period}</div>` : ""}
+      </div>
       <ul>
         ${exp.bullets.map((b) => `<li>${b}</li>`).join("")}
       </ul>
     </div>
-  `
-    )
+  `;
+    })
     .join("")}
 
   <script>
@@ -183,10 +235,11 @@ ${tailoredCV.highlightedSkills.join(" · ")}
 
 ${expTitle}
 ${tailoredCV.optimizedExperiences
-  .map(
-    (exp) => `${exp.position} | ${exp.company}
-${exp.bullets.map((b) => `• ${b}`).join("\n")}`
-  )
+  .map((exp, idx) => {
+    const period = exp.period || candidate.experiences.find((e) => e.company.toLowerCase() === exp.company.toLowerCase())?.period || candidate.experiences[idx]?.period || "";
+    return `${exp.position} | ${exp.company} ${period ? `(${period})` : ""}
+${exp.bullets.map((b) => `• ${b}`).join("\n")}`;
+  })
   .join("\n\n")}`;
   };
 
@@ -208,10 +261,10 @@ ${exp.bullets.map((b) => `• ${b}`).join("\n")}`
         <meta charset='utf-8'>
         <title>${candidate.fullName} - CV</title>
         <style>
-          body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.35; color: #111; }
-          h1 { font-size: 20pt; margin: 0 0 4pt 0; color: #111; }
+          body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.4; color: #111; }
+          h1 { font-size: 22pt; margin: 0 0 3pt 0; color: #111; }
           .subtitle { font-size: 12pt; font-weight: bold; color: #1e3a8a; margin-bottom: 12pt; }
-          h2 { font-size: 11pt; font-weight: bold; text-transform: uppercase; border-bottom: 1.5pt solid #111; margin-top: 14pt; margin-bottom: 6pt; letter-spacing: 0.5pt; }
+          h2 { font-size: 11.5pt; font-weight: bold; text-transform: uppercase; border-bottom: 1.5pt solid #111; margin-top: 14pt; margin-bottom: 6pt; letter-spacing: 0.5pt; }
           .job-title { font-weight: bold; font-size: 11pt; margin-top: 8pt; margin-bottom: 2pt; }
           ul { margin-top: 2pt; margin-bottom: 6pt; padding-left: 18pt; }
           li { margin-bottom: 2pt; }
@@ -230,14 +283,18 @@ ${exp.bullets.map((b) => `• ${b}`).join("\n")}`
 
         <h2>${isEn ? "Professional Experience" : "Досвід роботи"}</h2>
         ${tailoredCV.optimizedExperiences
-          .map(
-            (exp) => `
-          <div class="job-title">${exp.position} | ${exp.company}</div>
+          .map((exp, idx) => {
+            const period = exp.period || candidate.experiences.find((e) => e.company.toLowerCase() === exp.company.toLowerCase())?.period || candidate.experiences[idx]?.period || "";
+            return `
+          <div class="job-title" style="display:flex; justify-content:space-between;">
+            <span>${exp.position} | ${exp.company}</span>
+            <span style="font-weight:normal; color:#666;">${period}</span>
+          </div>
           <ul>
             ${exp.bullets.map((b) => `<li>${b}</li>`).join("")}
           </ul>
-        `
-          )
+        `;
+          })
           .join("")}
       </body>
       </html>
@@ -405,20 +462,28 @@ ${exp.bullets.map((b) => `• ${b}`).join("\n")}`
                 {isEn ? "Professional Experience" : "Досвід роботи"}
               </h2>
               <div className="space-y-4">
-                {tailoredCV.optimizedExperiences.map((exp, idx) => (
-                  <div key={idx} className="space-y-1.5 cv-section">
-                    <div className="flex justify-between items-baseline flex-wrap gap-1">
-                      <h3 className="text-sm font-bold text-slate-900">
-                        {exp.position} <span className="text-slate-500 font-normal">| {exp.company}</span>
-                      </h3>
+                {tailoredCV.optimizedExperiences.map((exp, idx) => {
+                  const period = exp.period || candidate.experiences.find((e) => e.company.toLowerCase() === exp.company.toLowerCase())?.period || candidate.experiences[idx]?.period || "";
+                  return (
+                    <div key={idx} className="space-y-1.5 cv-section">
+                      <div className="flex justify-between items-baseline flex-wrap gap-1">
+                        <h3 className="text-sm font-bold text-slate-900">
+                          {exp.position} <span className="text-slate-500 font-normal">| {exp.company}</span>
+                        </h3>
+                        {period && (
+                          <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
+                            {period}
+                          </span>
+                        )}
+                      </div>
+                      <ul className="list-disc list-outside ml-4 space-y-1 text-xs text-slate-700 leading-relaxed">
+                        {exp.bullets.map((bullet, bi) => (
+                          <li key={bi}>{bullet}</li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="list-disc list-outside ml-4 space-y-1 text-xs text-slate-700 leading-relaxed">
-                      {exp.bullets.map((bullet, bi) => (
-                        <li key={bi}>{bullet}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

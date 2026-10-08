@@ -208,13 +208,17 @@ Analysis: ${JSON.stringify(analysis)}`;
           jobId: job.id,
           tailoredSummary: parsed.tailoredSummary,
           highlightedSkills: parsed.highlightedSkills || [],
-          optimizedExperiences: (parsed.optimizedExperiences || []).map((exp: any) => ({
-            company: exp.company,
-            position: exp.position,
-            bullets: (exp.bullets || []).map((b: string) =>
-              b.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim()
-            )
-          })),
+          optimizedExperiences: (parsed.optimizedExperiences || []).map((exp: any, idx: number) => {
+            const orig = profile.experiences.find((e) => e.company.toLowerCase() === (exp.company || "").toLowerCase()) || profile.experiences[idx];
+            return {
+              company: exp.company || orig?.company || "Company",
+              position: exp.position || orig?.position || "Developer",
+              period: exp.period || orig?.period || "2022 - Present",
+              bullets: (exp.bullets || []).map((b: string) =>
+                b.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim()
+              ),
+            };
+          }),
           atsKeywordsAdded: parsed.atsKeywordsAdded || [],
         };
       }
@@ -237,6 +241,7 @@ Analysis: ${JSON.stringify(analysis)}`;
     optimizedExperiences: profile.experiences.map((exp) => ({
       company: exp.company,
       position: exp.position,
+      period: exp.period,
       bullets: exp.description.map((bullet) =>
         bullet.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim()
       ),

@@ -61,6 +61,7 @@ export interface TailoredCVResult {
   optimizedExperiences: {
     company: string;
     position: string;
+    period?: string;
     bullets: string[];
   }[];
   atsKeywordsAdded: string[];
