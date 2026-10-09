@@ -155,13 +155,11 @@ export default function HomePage() {
     const isEn = lang === "en";
     const newCand: CandidateProfile = {
       id: "cand-" + Date.now(),
-      fullName: isEn ? "New Candidate" : "Новий Кандидат",
-      title: "Software Engineer",
-      summary: isEn 
-        ? "Upload your CV (PDF/DOCX) or edit your skills and work history."
-        : "Завантажте резюме кандидата (PDF/DOCX) або заповніть навички та історію роботи.",
-      yearsOfExperience: 3,
-      skills: ["JavaScript", "TypeScript", "Git"],
+      fullName: isEn ? "New Profile" : "Новий профіль",
+      title: "",
+      summary: "",
+      yearsOfExperience: 0,
+      skills: [],
       experiences: []
     };
     setCandidates((prev) => [...prev, newCand]);

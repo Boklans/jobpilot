@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { CandidateProfile, ExperienceItem } from "@/types";
-import { User, Briefcase, Plus, X, UploadCloud, CheckCircle2, Edit3, Save, Trash2, Download, Database } from "lucide-react";
+import { User, Briefcase, Plus, X, UploadCloud, CheckCircle2, Edit3, Save, Trash2, Download, Database, AlertCircle, Sparkles } from "lucide-react";
 import { translations, Language } from "@/lib/translations";
 
 interface CandidateProfileViewProps {
@@ -80,22 +80,93 @@ export function CandidateProfileView({
   const skillsList = profile?.skills || [];
   const experiencesList = profile?.experiences || [];
 
-  // Dynamic Profile Completeness calculation
+  const isEn = lang === "en";
+
+  // Dynamic Smart Profile Completeness calculation
   const completeness = React.useMemo(() => {
     let score = 0;
-    if (profile?.fullName?.trim()) score += 15;
-    if (profile?.title?.trim()) score += 15;
-    if (profile?.summary?.trim() && profile.summary.trim().length > 10) score += 20;
-    if (skillsList.length >= 3) score += 25;
-    else if (skillsList.length > 0) score += 15;
-    if (experiencesList.length > 0) score += 25;
+
+    const trimmedName = profile?.fullName?.trim() || "";
+    const isDefaultName = /^(новий кандидат|новий профіль|new candidate|new profile|candidate)$/i.test(trimmedName);
+    const hasName = Boolean(trimmedName && !isDefaultName);
+
+    const trimmedTitle = profile?.title?.trim() || "";
+    const hasTitle = Boolean(trimmedTitle && trimmedTitle.length >= 3);
+    const isIdentityDone = hasName && hasTitle;
+    if (hasName) score += 10;
+    if (hasTitle) score += 10;
+
+    const summaryLen = profile?.summary?.trim()?.length || 0;
+    const isSummaryDone = summaryLen >= 30;
+    if (summaryLen >= 30) score += 20;
+    else if (summaryLen > 0) score += 10;
+
+    const skillsCount = skillsList.length;
+    const isSkillsDone = skillsCount >= 5;
+    if (skillsCount >= 5) score += 25;
+    else if (skillsCount >= 3) score += 18;
+    else if (skillsCount > 0) score += 10;
+
+    const hasExperience = experiencesList.length > 0;
+    const hasExpDetails = hasExperience && experiencesList.some(e => e.company?.trim() && e.position?.trim());
+    const hasExpBullets = hasExperience && experiencesList.some(e => Array.isArray(e.description) && e.description.filter(b => b.trim()).length >= 2);
+    const isExpDone = hasExperience && hasExpDetails && hasExpBullets;
+
+    if (hasExperience) score += 15;
+    if (hasExpDetails) score += 10;
+    if (hasExpBullets) score += 10;
 
     const percentage = Math.min(100, score);
+    const isComplete = percentage === 100;
+
+    const checklist = [
+      {
+        id: "identity",
+        label: t.itemIdentity,
+        done: isIdentityDone,
+        hint: !hasName 
+          ? (isEn ? "Add full name" : "Вкажіть своє ім'я") 
+          : !hasTitle 
+          ? (isEn ? "Add specific job title" : "Вкажіть цільову посаду") 
+          : "✓"
+      },
+      {
+        id: "summary",
+        label: t.itemSummary,
+        done: isSummaryDone,
+        hint: summaryLen === 0 
+          ? (isEn ? "Write a short summary (30+ chars)" : "Напишіть короткий опис про себе (від 30 симв.)") 
+          : summaryLen < 30 
+          ? (isEn ? "Expand summary (>30 chars)" : "Розширте опис (від 30 симв.)") 
+          : "✓"
+      },
+      {
+        id: "skills",
+        label: `${t.itemSkills} (${skillsCount}/5)`,
+        done: isSkillsDone,
+        hint: skillsCount < 5 
+          ? (isEn ? `Add ${5 - skillsCount} more skills` : `Додайте ще ${5 - skillsCount} навичок`) 
+          : "✓"
+      },
+      {
+        id: "experience",
+        label: t.itemExperience,
+        done: isExpDone,
+        hint: !hasExperience 
+          ? (isEn ? "Add at least 1 work history item" : "Додайте хоча б 1 місце роботи") 
+          : !hasExpBullets 
+          ? (isEn ? "Add 2+ achievement bullets" : "Додайте 2+ пункти обов'язків/досягнень") 
+          : "✓"
+      }
+    ];
+
     return {
       percentage,
-      isComplete: percentage === 100,
+      isComplete,
+      checklist,
+      missingCount: checklist.filter(c => !c.done).length
     };
-  }, [profile?.fullName, profile?.title, profile?.summary, skillsList.length, experiencesList.length]);
+  }, [profile?.fullName, profile?.title, profile?.summary, skillsList, experiencesList, isEn, t]);
 
   const handleAddSkill = (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,7 +385,15 @@ export function CandidateProfileView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">{t.title}</h2>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">{t.title}</h2>
+            {completeness.isComplete && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-2xs animate-in fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                {t.completeBadge}
+              </span>
+            )}
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             {t.subtitle}
           </p>
@@ -355,22 +434,59 @@ export function CandidateProfileView({
         </div>
       )}
 
-      {/* Profile Completeness Card */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
-        <div className="flex items-center justify-between text-xs font-bold">
-          <span className="text-slate-700">{t.completeness}</span>
-          <span className="text-blue-600">{completeness.percentage}%</span>
+      {/* Profile Completeness Card (shown only while incomplete to avoid cluttering 100% profiles) */}
+      {!completeness.isComplete && (
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-blue-100 shadow-2xs space-y-4 bg-gradient-to-br from-white via-white to-blue-50/30 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                {t.completeness}
+              </span>
+              <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-blue-100 text-blue-700">
+                {completeness.percentage}%
+              </span>
+            </div>
+            <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+              <span>{t.incompleteHint}</span>
+            </div>
+          </div>
+
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div 
+              className="bg-blue-600 h-full rounded-full transition-all duration-500" 
+              style={{ width: `${completeness.percentage}%` }} 
+            />
+          </div>
+
+          {/* Actionable Checklist */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+            {completeness.checklist.map((item) => (
+              <div 
+                key={item.id}
+                className={`p-2.5 rounded-xl border text-xs transition-all ${
+                  item.done 
+                    ? "bg-emerald-50/60 border-emerald-200 text-emerald-900" 
+                    : "bg-slate-50 border-slate-200 text-slate-700 hover:border-blue-200"
+                }`}
+              >
+                <div className="flex items-center justify-between font-bold mb-1">
+                  <span className="truncate">{item.label}</span>
+                  {item.done ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  ) : (
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  )}
+                </div>
+                <p className={`text-[11px] ${item.done ? "text-emerald-700 font-medium" : "text-slate-500"}`}>
+                  {item.hint}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-          <div 
-            className="bg-blue-600 h-full rounded-full transition-all duration-500" 
-            style={{ width: `${completeness.percentage}%` }} 
-          />
-        </div>
-        <p className="text-[11px] text-slate-400">
-          {completeness.isComplete ? t.completeHint : t.incompleteHint}
-        </p>
-      </div>
+      )}
 
       {/* Profile Info Card */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs space-y-6">
