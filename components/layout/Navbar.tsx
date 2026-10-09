@@ -42,7 +42,7 @@ export function Navbar({
   // Only core workflow items in the main navigation
   const navItems = [
     { id: "dashboard", label: isEn ? "Dashboard" : "Дашборд", icon: Compass },
-    { id: "analyze", label: isEn ? "Analyze Job" : "Аналіз вакансії", icon: Sparkles },
+    { id: "analyze", label: isEn ? "Analyze Job" : "Аналіз вакансій", icon: Sparkles },
     { id: "tracker", label: isEn ? "Applications" : "Трекер заявок", icon: Briefcase },
   ];
 
@@ -51,25 +51,25 @@ export function Navbar({
   return (
     <header className="border-b border-slate-200 bg-white sticky top-0 z-40 shadow-xs">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="flex justify-between h-16 items-center">
+        <div className="flex justify-between h-16 items-center gap-2 sm:gap-4">
           {/* Brand */}
           <div 
-            className="flex items-center space-x-3 cursor-pointer group" 
+            className="flex items-center space-x-3 cursor-pointer group shrink-0" 
             onClick={() => setActiveTab("dashboard")}
           >
-            <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm group-hover:bg-blue-600 transition">
+            <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm group-hover:bg-blue-600 transition shrink-0">
               <Sparkles className="w-4 h-4 text-blue-400 group-hover:text-white transition" />
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-slate-900">JobPilot</span>
-              <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
-                {isEn ? "Know if you're a fit. Apply with confidence." : "Оціни шанси на вакансію та подавайся впевнено."}
+              <p className="text-[11px] text-slate-500 font-medium hidden md:block whitespace-nowrap">
+                {isEn ? "Know if you're a fit. Apply with confidence." : "Оціни шанси та подавайся впевнено."}
               </p>
             </div>
           </div>
 
           {/* Core Workflow Tabs */}
-          <nav className="flex space-x-1 sm:space-x-1.5">
+          <nav className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -77,20 +77,20 @@ export function Navbar({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
+                  className={`flex items-center space-x-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
                     isActive
                       ? "bg-slate-900 text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-blue-400" : "text-slate-400"}`} />
-                  <span>{item.label}</span>
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-blue-400" : "text-slate-400"}`} />
+                  <span className="whitespace-nowrap">{item.label}</span>
                 </button>
               );
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Language Switcher */}
             {setLang && (
               <div className="flex items-center bg-slate-100 rounded-xl p-0.5 text-xs font-bold border border-slate-200">
