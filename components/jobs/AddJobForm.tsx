@@ -64,22 +64,28 @@ export function AddJobForm({ onAnalyze, isLoading, lang = "ua" }: AddJobFormProp
     const lines = inputText.split("\n").map(l => l.trim()).filter(Boolean);
 
     let guessedTitle = "Senior Software Engineer";
-    let guessedCompany = "Tech Company";
+    let guessedCompany = "Company";
     let guessedSalary: string | undefined = undefined;
 
     if (!isUrl && lines.length > 0) {
       // Find title & company heuristics
-      guessedTitle = lines[0].replace(/^(We are looking for|Hiring|Role:)/i, "").trim().slice(0, 50) || guessedTitle;
+      guessedTitle = lines[0].replace(/^(We are looking for|Hiring|Role:|Position:)/i, "").trim().slice(0, 50) || guessedTitle;
       
       const salaryMatch = inputText.match(/(\$\s?[\d,]+(?:\s?-\s?[\d,]+)?(?:\s?k)?)/i);
       if (salaryMatch) guessedSalary = salaryMatch[1];
 
-      const companyMatch = inputText.match(/(?:at|company|team at)\s+([A-Z][A-Za-z0-9\s]{2,20})/);
+      const companyMatch = inputText.match(/(?:at|company|team at|Meet the|About)\s+([A-Z][A-Za-z0-9\s]{2,25})/i);
       if (companyMatch) guessedCompany = companyMatch[1].trim();
     } else if (isUrl) {
-      if (inputText.includes("djinni.co")) guessedCompany = "Djinni Opportunity";
-      else if (inputText.includes("dou.ua")) guessedCompany = "DOU Job";
-      else if (inputText.includes("linkedin.com")) guessedCompany = "LinkedIn Role";
+      if (inputText.includes("djinni.co")) {
+        const slugMatch = inputText.match(/company-([^/]+)/i);
+        guessedCompany = slugMatch ? slugMatch[1].split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Djinni Employer";
+      } else if (inputText.includes("dou.ua")) {
+        const douMatch = inputText.match(/companies\/([^/]+)/i);
+        guessedCompany = douMatch ? decodeURIComponent(douMatch[1]).split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "DOU Employer";
+      } else if (inputText.includes("linkedin.com")) {
+        guessedCompany = "LinkedIn Employer";
+      }
     }
 
     const newJob: JobListing = {
