@@ -7,7 +7,11 @@ import { translations, Language } from "@/lib/translations";
 
 interface CandidateProfileViewProps {
   profile: CandidateProfile;
+  candidates?: CandidateProfile[];
   onUpdateProfile: (updated: CandidateProfile) => void;
+  onSelectCandidate?: (id: string) => void;
+  onCreateCandidate?: () => void;
+  onDeleteCandidate?: (id: string) => void;
   lang?: Language;
   onExportBackup?: () => void;
   onImportBackup?: (file: File) => Promise<boolean>;
@@ -15,7 +19,11 @@ interface CandidateProfileViewProps {
 
 export function CandidateProfileView({ 
   profile, 
+  candidates = [],
   onUpdateProfile, 
+  onSelectCandidate,
+  onCreateCandidate,
+  onDeleteCandidate,
   lang = "ua",
   onExportBackup,
   onImportBackup
@@ -232,6 +240,77 @@ export function CandidateProfileView({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Multi-Profile Switcher Bar */}
+      {candidates && candidates.length > 0 && (
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                {t.profilesSelectorTitle}
+              </span>
+            </div>
+            {candidates.length > 1 && onDeleteCandidate && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(t.confirmDeleteProfile)) {
+                    onDeleteCandidate(profile.id);
+                  }
+                }}
+                className="text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-2.5 py-1 rounded-lg border border-transparent hover:border-rose-200 transition inline-flex items-center gap-1 self-start sm:self-auto"
+                title={t.deleteCurrentProfileBtn}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{t.deleteCurrentProfileBtn}</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {candidates.map((c) => {
+              const isActive = c.id === profile.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onSelectCandidate && onSelectCandidate(c.id)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    isActive
+                      ? "bg-slate-900 text-white shadow-sm ring-2 ring-blue-500/20"
+                      : "bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                    isActive ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+                  }`}>
+                    {c.fullName.charAt(0) || "U"}
+                  </div>
+                  <span>{c.fullName}</span>
+                  <span className={`text-[10px] font-normal ${isActive ? "text-slate-300" : "text-slate-400"}`}>
+                    ({c.title})
+                  </span>
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+                  )}
+                </button>
+              );
+            })}
+
+            {onCreateCandidate && (
+              <button
+                type="button"
+                onClick={onCreateCandidate}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/50 hover:bg-blue-50 text-blue-700 text-xs font-bold transition shadow-2xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{t.addNewProfileBtn}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

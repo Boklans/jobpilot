@@ -152,18 +152,30 @@ export default function HomePage() {
   };
 
   const handleAddNewCandidate = () => {
+    const isEn = lang === "en";
     const newCand: CandidateProfile = {
       id: "cand-" + Date.now(),
-      fullName: "Новий Кандидат",
+      fullName: isEn ? "New Candidate" : "Новий Кандидат",
       title: "Software Engineer",
-      summary: "Завантажте резюме кандидата для автоматичного заповнення або відредагуйте профіль.",
+      summary: isEn 
+        ? "Upload your CV (PDF/DOCX) or edit your skills and work history."
+        : "Завантажте резюме кандидата (PDF/DOCX) або заповніть навички та історію роботи.",
       yearsOfExperience: 3,
-      skills: ["JavaScript", "Git"],
+      skills: ["JavaScript", "TypeScript", "Git"],
       experiences: []
     };
-    setCandidates((prev) => [newCand, ...prev]);
+    setCandidates((prev) => [...prev, newCand]);
     setActiveCandidateId(newCand.id);
     setActiveTab("profile");
+  };
+
+  const handleDeleteCandidate = (id: string) => {
+    if (candidates.length <= 1) return;
+    const remaining = candidates.filter((c) => c.id !== id);
+    setCandidates(remaining);
+    if (activeCandidateId === id) {
+      setActiveCandidateId(remaining[0].id);
+    }
   };
 
   const handleUpdateActiveProfile = (updated: CandidateProfile) => {
@@ -315,6 +327,9 @@ export default function HomePage() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activeCandidate={activeCandidate}
+        candidates={candidates}
+        onSelectCandidate={handleSelectCandidate}
+        onCreateCandidate={handleAddNewCandidate}
         lang={lang}
         setLang={setLang}
       />
@@ -618,7 +633,11 @@ export default function HomePage() {
           <div className="animate-in fade-in duration-300">
             <CandidateProfileView
               profile={activeCandidate}
+              candidates={candidates}
               onUpdateProfile={handleUpdateActiveProfile}
+              onSelectCandidate={handleSelectCandidate}
+              onCreateCandidate={handleAddNewCandidate}
+              onDeleteCandidate={handleDeleteCandidate}
               lang={lang}
               onExportBackup={handleExportBackup}
               onImportBackup={handleImportBackup}
