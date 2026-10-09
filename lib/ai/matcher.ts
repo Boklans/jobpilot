@@ -500,15 +500,35 @@ export async function generateTailoredCV(
   language: "ua" | "en" = "en"
 ): Promise<TailoredCVResult> {
   const geminiKey = process.env.GEMINI_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
   const isEn = language === "en";
 
-  const tailorPrompt = `You are an elite Executive Tech Resume Tailor. Tailor the candidate's existing experience to match the target job description. Never invent fake companies or skills.
+  const candidateSummaryData = {
+    fullName: profile.fullName,
+    title: profile.title,
+    summary: profile.summary,
+    yearsOfExperience: profile.yearsOfExperience,
+    skills: profile.skills,
+    experiences: (profile.experiences || []).map((e) => ({
+      company: e.company,
+      position: e.position,
+      period: e.period,
+      description: e.description,
+    })),
+  };
+
+  const tailorPrompt = `You are an elite Executive Tech Resume Tailor. Tailor the candidate's genuine experience to best highlight relevance for the target job description.
 LANGUAGE: Write strictly in ${isEn ? "English" : "Ukrainian"}.
-CRITICAL RULES FOR HR-READY RESUME:
-1. NEVER include meta-labels such as "[ATS-Optimized]", "Targeted for", "з акцентом на вимоги", or the hiring company's name (${job.company}) inside past job bullets or summary! This resume is submitted directly to the HR and hiring managers of ${job.company} and MUST read as an authentic, natural, high-impact professional resume.
-2. Emphasize actual engineering achievements, architecture, scale, and relevant stack (${profile.skills.slice(0, 8).join(", ")}).
-3. Keep bullets action-driven with strong verbs.
+
+STRICT FACTUAL INTEGRITY & ANTI-HALLUCINATION RULES:
+1. ABSOLUTELY NO DUPLICATES: Every single bullet point across all experiences MUST be 100% unique in wording, achievement, and meaning. Never repeat the same point twice.
+2. DO NOT CHANGE FACTS:
+   - Do NOT alter company names, job titles, or dates of employment.
+   - Do NOT invent or fabricate technologies, tools, or projects that do not exist in the candidate's actual profile skills (${profile.skills.join(", ")}).
+   - Only highlight and elevate genuine skills and experiences the candidate actually possesses.
+3. AUTHENTIC PROFESSIONAL VOICE:
+   - NEVER include meta-labels such as "[ATS-Optimized]", "Targeted for", "з акцентом на вимоги", or the hiring company name (${job.company}) inside past job descriptions.
+   - Use high-impact action verbs (Architected, Spearheaded, Optimized, Implemented).
+   - Keep bullet points focused on quantifiable engineering impact and architectural ownership.
 
 Return strict JSON:
 {
@@ -524,9 +544,16 @@ Return strict JSON:
   "atsKeywordsAdded": string[]
 }
 
-Candidate: ${JSON.stringify(profile)}
-Job: ${JSON.stringify(job)}
-Analysis: ${JSON.stringify(analysis)}`;
+Candidate Profile:
+${JSON.stringify(candidateSummaryData, null, 2)}
+
+Target Job:
+${JSON.stringify({
+  title: job.title,
+  company: job.company,
+  location: job.location,
+  description: job.rawDescription.slice(0, 3000),
+}, null, 2)}`;
 
   if (geminiKey) {
     try {
@@ -535,16 +562,32 @@ Analysis: ${JSON.stringify(analysis)}`;
         return {
           jobId: job.id,
           tailoredSummary: parsed.tailoredSummary,
-          highlightedSkills: parsed.highlightedSkills || [],
-          optimizedExperiences: (parsed.optimizedExperiences || []).map((exp: any, idx: number) => {
-            const orig = profile.experiences.find((e) => e.company.toLowerCase() === (exp.company || "").toLowerCase()) || profile.experiences[idx];
+          highlightedSkills: parsed.highlightedSkills || profile.skills.slice(0, 10),
+          optimizedExperiences: profile.experiences.map((orig, idx) => {
+            const aiExp = (parsed.optimizedExperiences || []).find(
+              (e: any) => e.company?.toLowerCase() === orig.company.toLowerCase()
+            ) || parsed.optimizedExperiences?.[idx];
+
+            const rawBullets: string[] = (aiExp?.bullets || orig.description || []).map((b: string) =>
+              b.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim()
+            ).filter(Boolean);
+
+            // Strict deduplication
+            const uniqueBullets: string[] = [];
+            const seen = new Set<string>();
+            for (const b of rawBullets) {
+              const norm = b.toLowerCase().replace(/[^a-zа-я0-9]/gi, "");
+              if (!seen.has(norm)) {
+                seen.add(norm);
+                uniqueBullets.push(b);
+              }
+            }
+
             return {
-              company: exp.company || orig?.company || "Company",
-              position: exp.position || orig?.position || "Developer",
-              period: exp.period || orig?.period || "2022 - Present",
-              bullets: (exp.bullets || []).map((b: string) =>
-                b.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim()
-              ),
+              company: orig.company,
+              position: orig.position,
+              period: orig.period,
+              bullets: uniqueBullets.length > 0 ? uniqueBullets : orig.description,
             };
           }),
           atsKeywordsAdded: parsed.atsKeywordsAdded || [],
@@ -555,87 +598,51 @@ Analysis: ${JSON.stringify(analysis)}`;
     }
   }
 
-  // Intelligent Domain-Aware Tailoring Engine
+  // Authentic Domain-Aware Tailoring Engine (Fallback)
   const jobTextLower = (job.rawDescription + " " + job.title + " " + job.company).toLowerCase();
 
-  // Detect vacancy domain focus
-  const isFintech = /bank|fintech|financial|payment|transaction|фінанс|платіж|банк|кредит|lime|privat/i.test(jobTextLower);
-  const isCloudDevOps = /aws|azure|cloud|docker|kubernetes|ci\/cd|devops|terraform|microservice|хмар/i.test(jobTextLower);
-  const isDatabaseHeavy = /sql|mssql|postgresql|database|оптимізац|stored procedure|query|индекс|індекс|high-load|високонавантаж/i.test(jobTextLower);
-  const isEnterprise = /enterprise|product|saas|murano|crm|erp|b2b|architecture|архітектур/i.test(jobTextLower);
-
-  // 1. Dynamic Tailored Summary targeted at this job's domain
-  let tailoredSummaryText: string;
-  if (isFintech) {
-    tailoredSummaryText = isEn
-      ? `Accomplished ${profile.title} with ${profile.yearsOfExperience}+ years of production experience in high-scale enterprise and financial transaction systems. Specialized in resilient ASP.NET Core microservices, mission-critical business logic, and high-throughput data processing with stringent security and reliability standards.`
-      : `Досвідчений ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду в розробці фінансових систем та транзакційних сервісів. Спеціалізується на мікросервісах на базі ASP.NET Core, високонадійній бізнес-логіці та оптимізації баз даних під високі навантаження.`;
-  } else if (isCloudDevOps) {
-    tailoredSummaryText = isEn
-      ? `Senior ${profile.title} with ${profile.yearsOfExperience}+ years of expertise architecting cloud-native distributed backends and scalable web APIs. Deep proficiency across modern .NET Core, containerized infrastructure (Docker/Kubernetes), and event-driven microservices designed for 99.9% availability.`
-      : `Провідний ${profile.title} із ${profile.yearsOfExperience}+ роками досвіду побудови хмарних розподілених систем і масштабованих web API. Експертиза в .NET Core, контейнеризації (Docker/Kubernetes) та асинхронній мікросервісній архітектурі, орієнтованій на високу відмовостійкість.`;
-  } else if (isEnterprise) {
-    tailoredSummaryText = isEn
-      ? `Seasoned ${profile.title} with ${profile.yearsOfExperience}+ years of full-lifecycle software engineering experience across enterprise SaaS and product platforms. Strong focus on clean architecture, domain-driven design, RESTful API design, and rapid agile delivery.`
-      : `Досвідчений ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду повного циклу розробки корпоративних SaaS та продуктових систем. Сфокусований на Clean Architecture, Domain-Driven Design, проектуванні RESTful API та командній розробці за Agile.`;
-  } else {
-    tailoredSummaryText = isEn
-      ? `Versatile ${profile.title} with ${profile.yearsOfExperience}+ years of experience designing and scaling production software systems aligned with the requirements for ${job.title}. Proven track record in backend performance tuning, robust system integration, and engineering excellence.`
-      : `Універсальний ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду розробки та масштабування систем під вимоги посади ${job.title}. Підтверджений досвід оптимізації швидкодії, інтеграції сервісів та впровадження інженерних стандартів.`;
-  }
-
-  // 2. Re-prioritize skills: matching job skills go directly to the front!
+  // 1. Prioritize real candidate skills that overlap with the target job
   const matchedSkills = profile.skills.filter((s) => jobTextLower.includes(s.toLowerCase()));
   const otherSkills = profile.skills.filter((s) => !matchedSkills.includes(s));
   const prioritizedSkills = [...matchedSkills, ...otherSkills].slice(0, 10);
+  const primaryStackStr = matchedSkills.slice(0, 3).join(", ") || profile.skills.slice(0, 3).join(", ");
 
-  // 3. Intelligently adapt experience bullet points for this specific role
-  const optimizedExperiences = profile.experiences.map((exp, idx) => {
+  // 2. Dynamic Tailored Summary highlighting real experience and target role
+  const tailoredSummaryText = isEn
+    ? `Accomplished ${profile.title} with ${profile.yearsOfExperience}+ years of commercial software engineering experience specializing in ${primaryStackStr}. Proven track record in high-impact product delivery, clean system architecture, and robust engineering practices aligned with the requirements for ${job.title}.`
+    : `Досвідчений ${profile.title} із ${profile.yearsOfExperience}+ роками комерційного досвіду розробки систем з акцентом на ${primaryStackStr}. Підтверджений досвід побудови масштабованих рішень, чистої архітектури та надійних інженерних практик, орієнтованих на вимоги позиції ${job.title}.`;
+
+  // 3. Authentically polish experience bullet points WITHOUT inventing fake technologies
+  const optimizedExperiences = profile.experiences.map((exp) => {
     const originalBullets = Array.isArray(exp.description) ? exp.description : [];
-    const adaptedBullets = originalBullets.map((bullet) => {
-      let b = bullet.replace(/\[ATS-Optimized\]\s*/gi, "").replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "").trim();
+    const polishedBullets: string[] = [];
+    const seen = new Set<string>();
 
-      // If job is fintech/database and this bullet touches DB:
-      if ((isFintech || isDatabaseHeavy) && /sql|баз|database|запит|даних|query/i.test(b)) {
-        b = isEn
-          ? "Engineered and optimized high-performance database interactions and stored procedures in MSSQL/PostgreSQL, reducing query latency by 35% and ensuring strict ACID transaction reliability."
-          : "Спроектував та оптимізував запити і збережені процедури в MSSQL/PostgreSQL, зменшивши затримку виконання на 35% та забезпечивши сувору транзакційну надійність даних.";
-      }
-      // If job is cloud/microservices and bullet touches services/api:
-      else if (isCloudDevOps && /api|сервіс|service|microservice|rest|хмар/i.test(b)) {
-        b = isEn
-          ? "Architected and deployed resilient ASP.NET Core microservices, implementing robust RESTful endpoints, asynchronous messaging, and containerized deployment with Docker."
-          : "Спроектував та розгорнув мікросервіси на базі ASP.NET Core, реалізувавши надійні RESTful ендпоінти, асинхронний обмін повідомленнями та контейнеризацію в Docker.";
-      }
-      // If job is enterprise/architecture and bullet touches architecture/code:
-      else if (isEnterprise && /архітектур|clean|код|structure|проект/i.test(b)) {
-        b = isEn
-          ? "Established Clean Architecture standards and Domain-Driven Design principles, enhancing code maintainability and test coverage across distributed backend services."
-          : "Впровадив стандарти Clean Architecture та принципи Domain-Driven Design, підвищивши підтримуваність кодової бази та покриття тестами у розподілених сервісах.";
-      }
+    originalBullets.forEach((bullet) => {
+      let b = bullet
+        .replace(/\[ATS-Optimized\]\s*/gi, "")
+        .replace(/з акцентом на вимоги\s+[A-Za-z0-9_-]+/gi, "")
+        .trim();
 
-      return b;
+      if (!b) return;
+
+      const norm = b.toLowerCase().replace(/[^a-zа-я0-9]/gi, "");
+      if (seen.has(norm)) return; // Prevent exact duplicates
+      seen.add(norm);
+
+      polishedBullets.push(b);
     });
 
     return {
       company: exp.company,
       position: exp.position,
       period: exp.period,
-      bullets: adaptedBullets,
+      bullets: polishedBullets.length > 0 ? polishedBullets : originalBullets,
     };
   });
 
-  // 4. Targeted ATS Keywords derived from this specific vacancy
-  const atsKeywordsAdded = analysis.strengths
-    .map((s) => s.replace("Підтверджений досвід: ", "").trim())
-    .filter(Boolean)
-    .slice(0, 4);
-
-  if (atsKeywordsAdded.length === 0) {
-    if (isFintech) atsKeywordsAdded.push("Financial Transactions", "ACID Compliance", "High Throughput");
-    else if (isCloudDevOps) atsKeywordsAdded.push("Cloud Infrastructure", "Docker", "Microservices");
-    else atsKeywordsAdded.push("Clean Architecture", "RESTful APIs", "System Scalability");
-  }
+  // 4. Genuine ATS Keywords from actual overlap
+  const atsKeywordsAdded = matchedSkills.slice(0, 4);
 
   return {
     jobId: job.id,
@@ -645,6 +652,8 @@ Analysis: ${JSON.stringify(analysis)}`;
     atsKeywordsAdded,
   };
 }
+
+export const tailorCV = generateTailoredCV;
 
 export async function generateCoverLetter(
   profile: CandidateProfile,
