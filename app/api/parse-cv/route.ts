@@ -149,9 +149,11 @@ function parseExperiencesOffline(rawText: string, detectedTitle: string, default
     const periodMatch = periodLine.match(dateRegex);
     const period = periodMatch ? periodMatch[0].trim() : periodLine;
 
-    // Skip education sections that matched date
-    const surrounding = lines.slice(Math.max(0, dIdx - 2), Math.min(lines.length, dIdx + 3)).join(" ");
-    if (/university|college|bachelor|master|degree|університет|інститут|магістр|бакалавр/i.test(surrounding)) {
+    // Skip education sections that matched date (only if this specific entry is a degree/university)
+    const thisEntryHeader = [lines[dIdx - 1] || "", lines[dIdx], lines[dIdx + 1] || ""].join(" ");
+    const isDegree = /university|college|bachelor|master|degree|faculty|університет|інститут|магістр|бакалавр/i.test(thisEntryHeader);
+    const hasJobTitle = titlePatterns.some(tp => tp.test(thisEntryHeader));
+    if (isDegree && !hasJobTitle) {
       return;
     }
 
@@ -159,7 +161,7 @@ function parseExperiencesOffline(rawText: string, detectedTitle: string, default
     let company = "";
 
     // Check same line without date
-    const lineWithoutDate = periodLine.replace(period, "").replace(/[()|•,]/g, "").trim();
+    const lineWithoutDate = periodLine.replace(period, "").replace(/[()|•,●]/g, "").trim();
     if (lineWithoutDate.length > 3 && titlePatterns.some(tp => tp.test(lineWithoutDate))) {
       position = lineWithoutDate;
     }
@@ -177,7 +179,7 @@ function parseExperiencesOffline(rawText: string, detectedTitle: string, default
     }
 
     // If company not found, inspect next line
-    if (!company && lines[dIdx + 1] && !lines[dIdx + 1].startsWith("•") && !lines[dIdx + 1].startsWith("-") && lines[dIdx + 1].length < 50) {
+    if (!company && lines[dIdx + 1] && !/^[\u2022\u2023\u25E6\u2043\u2219\-\*●•]/.test(lines[dIdx + 1]) && lines[dIdx + 1].length < 50) {
       if (titlePatterns.some(tp => tp.test(lines[dIdx + 1]))) {
         if (!position) position = lines[dIdx + 1];
       } else {
@@ -190,13 +192,16 @@ function parseExperiencesOffline(rawText: string, detectedTitle: string, default
     const bullets: string[] = [];
 
     for (let b = dIdx + 1; b < nextBoundary; b++) {
-      const bl = lines[b];
+      const bl = lines[b].trim();
       if (stopSections.some(s => s.test(bl))) break;
       if (b === nextBoundary - 1 && (titlePatterns.some(tp => tp.test(bl)) || bl.length < 25)) continue;
 
-      if (/^[\u2022\u2023\u25E6\u2043\u2219\-\*]\s+/.test(bl) || /^\d+\.\s+/.test(bl)) {
-        bullets.push(bl.replace(/^[\u2022\u2023\u25E6\u2043\u2219\-\*]\s+/, "").replace(/^\d+\.\s+/, "").trim());
-      } else if (bl.length > 25 && !titlePatterns.some(tp => tp.test(bl)) && bl !== company) {
+      if (/^[\u2022\u2023\u25E6\u2043\u2219\-\*●•]\s*/.test(bl) || /^\d+\.\s+/.test(bl)) {
+        const cleanedBullet = bl.replace(/^[\u2022\u2023\u25E6\u2043\u2219\-\*●•]\s*/, "").replace(/^\d+\.\s+/, "").trim();
+        if (cleanedBullet.length >= 15 && cleanedBullet !== "value.") {
+          bullets.push(cleanedBullet);
+        }
+      } else if (bl.length > 25 && !titlePatterns.some(tp => tp.test(bl)) && bl !== company && bl !== position && bl !== "value.") {
         bullets.push(bl);
       }
     }
@@ -229,16 +234,41 @@ async function parseTextIntoProfile(
 
   const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
   
-  // Clean candidate name
+  // Clean candidate name (avoid section titles like "DETAILS", "PROFILE", "CONTACT")
+  const stopWordsRegex = /^(?:details|contact|address|phone|email|links|skills|technical skills|profile|professional profile|summary|experience|professional experience|work experience|education|languages|curriculum|resume|cv|portfolio|projects)$/i;
+  
   let candidateName = "";
-  for (const l of lines.slice(0, 4)) {
-    if (l.length >= 3 && l.length <= 40 && !l.includes("@") && !l.includes("http") && !/resume|cv|curriculum/i.test(l)) {
-      candidateName = l;
-      break;
+  for (const l of lines.slice(0, 15)) {
+    const trimmed = l.trim();
+    if (
+      trimmed.length >= 3 &&
+      trimmed.length <= 40 &&
+      !trimmed.includes("@") &&
+      !trimmed.includes("http") &&
+      !trimmed.includes("/") &&
+      !trimmed.includes("+") &&
+      !stopWordsRegex.test(trimmed) &&
+      !/^(?:senior|middle|junior|lead|developer|engineer|full-stack|backend|frontend)/i.test(trimmed)
+    ) {
+      if (/^[A-Za-zА-Яа-яІіЇїЄє\s.'-]+$/.test(trimmed) && trimmed.split(/\s+/).length >= 2) {
+        candidateName = trimmed;
+        break;
+      }
     }
   }
+
   if (!candidateName) {
-    candidateName = fileName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
+    const cleanedFile = fileName
+      .replace(/\.[^/.]+$/, "")
+      .replace(/(?:_|\b)(?:cv|resume|recommendations|max|new|final|\d+)(?:_|\b)/gi, " ")
+      .replace(/[_-]+/g, " ")
+      .trim();
+    const words = cleanedFile.split(/\s+/).filter(w => w.length >= 2);
+    if (words.length >= 2 && words.every(w => /^[A-Za-zА-Яа-яІіЇїЄє]+$/.test(w))) {
+      candidateName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    } else {
+      candidateName = cleanedFile || "Candidate";
+    }
   }
 
   // Detect skills
@@ -260,7 +290,7 @@ async function parseTextIntoProfile(
     estimatedYears = parseInt(yearMatch[1], 10);
   }
 
-  const prompt = `Parse this resume into strict JSON:
+  const prompt = `You are an elite Tech Resume Parser. Parse this resume into strict JSON:
 {
   "fullName": string,
   "title": string,
@@ -280,9 +310,10 @@ async function parseTextIntoProfile(
 }
 
 CRITICAL RULES:
-1. You MUST extract EVERY SINGLE past job and company listed in the resume. Do NOT omit, compress, or truncate any work history position.
-2. For each experience, extract complete bullet points into "description".
-3. Return valid JSON only.
+1. "fullName": Extract the actual person's name (e.g. "Volodymyr Osmin"). NEVER return section headings like "DETAILS", "PROFILE", "ADDRESS", or "CONTACT DETAILS".
+2. You MUST extract EVERY SINGLE past job and company listed across the entire resume text. Do NOT stop after the first job.
+3. For each experience, extract complete, detailed bullet points into "description".
+4. Return valid JSON only.
 
 Resume text:
 ${rawText.slice(0, 8000)}`;
@@ -290,11 +321,16 @@ ${rawText.slice(0, 8000)}`;
   // 1. Try Google Gemini Flash if configured
   if (geminiKey) {
     try {
-      const parsed = await callGeminiJson<any>(prompt, geminiKey, 14000);
+      const parsed = await callGeminiJson<any>(prompt, geminiKey, 20000);
       if (parsed && Array.isArray(parsed.experiences) && parsed.experiences.length > 0) {
+        let extractedName = (parsed.fullName || "").trim();
+        if (!extractedName || stopWordsRegex.test(extractedName)) {
+          extractedName = candidateName;
+        }
+
         return {
           id: "cv-" + Date.now(),
-          fullName: parsed.fullName || candidateName,
+          fullName: extractedName,
           title: parsed.title || detectedTitle,
           summary: parsed.summary || "",
           yearsOfExperience: parsed.yearsOfExperience || estimatedYears,
