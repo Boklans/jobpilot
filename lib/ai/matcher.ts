@@ -37,16 +37,26 @@ Location: ${job.location}
 Description:
 ${job.rawDescription}
 
-CRITICAL MATCH SCORING RULES:
+CRITICAL MATCH SCORING & CONSISTENCY RULES:
 1. PRIMARY TECH STACK ALIGNMENT IS PARAMOUNT:
 - Determine the primary core programming language & framework required by the Job Title and Description (e.g. Node.js, Angular, React, Vue, Python, Java, .NET/C#, PHP, Go, etc.).
 - If the candidate's background is in a fundamentally different primary stack (for example, a .NET/C# engineer applying for a Senior Full-Stack Angular/Node.js job, or a Java developer applying for a Python/Django role):
   * The score MUST be between 15 and 35.
   * The recommendation MUST be "low_match".
-  * DO NOT inflate the score based on generic software engineering overlaps (such as Git, Docker, SQL, Agile, OOP, Microservices, or Seniority).
+  * DO NOT inflate the score based on generic software engineering overlaps.
   * In summary and experienceGaps, explicitly state: "Критична невідповідність основного стеку: Вакансія вимагає [Job Stack], тоді як профіль кандидата сфокусований на [Candidate Stack]."
-2. High Match (80-100%) requires direct compatibility with the primary languages and frameworks.
-3. Partial Match (50-75%) is ONLY for roles within the same or closely related ecosystem.
+2. GROUNDED PENALTIES FOR MISSING REQUIREMENTS:
+- If the core language matches, but the candidate lacks stated critical architectural/infrastructure requirements (such as Kubernetes, Microservices, Cloud, Docker, System Design, or specified Database engines):
+  * Apply a penalty of -10 to -15 points per critical missing requirement.
+  * A candidate CANNOT receive "strong_match" (>=85%) if they lack 2 or more critical stated requirements!
+  * If 2+ critical requirements are missing, score MUST be capped at 74% ("good_match" or "partial_match").
+  * If 1 critical requirement is missing, score MUST be capped at 82%.
+3. STRICT ALIGNMENT BETWEEN SCORE, VERDICT & GAPS:
+- The score and recommendation MUST NEVER contradict the listed missingSkills or experienceGaps.
+- "strong_match" (85-100%): direct alignment across core & architectural requirements with NO critical gaps.
+- "good_match" (70-84%): strong primary alignment, but with 1 notable gap to address.
+- "partial_match" (50-69%): 2+ notable missing technologies or seniority gap.
+- "low_match" (<50%): severe stack mismatch or missing fundamental prerequisites.
 
 Return strict JSON:
 {
@@ -59,6 +69,22 @@ Return strict JSON:
   "tailoringTips": string[],
   "interviewTips": string[]
 }`;
+
+  // Helper to ensure consistency clamp between score and gaps
+  const enforceConsistency = (score: number, missing: string[], gaps: string[], rec: MatchAnalysisResult["recommendation"]) => {
+    let finalScore = score;
+    const hasCriticalGaps = gaps.length >= 2 || missing.length >= 3;
+    if (hasCriticalGaps && finalScore >= 85) {
+      finalScore = 78;
+    }
+    let finalRec = rec;
+    if (finalScore >= 85) finalRec = "strong_match";
+    else if (finalScore >= 70) finalRec = "good_match";
+    else if (finalScore >= 50) finalRec = "partial_match";
+    else finalRec = "low_match";
+
+    return { score: finalScore, recommendation: finalRec };
+  };
 
   // Try OpenAI
   if (openaiKey) {
@@ -88,11 +114,18 @@ Return strict JSON:
       if (response.ok) {
         const data = await response.json();
         const parsed = JSON.parse(data.choices[0].message.content);
+        const { score, recommendation } = enforceConsistency(
+          parsed.score || 70,
+          parsed.missingSkills || [],
+          parsed.experienceGaps || [],
+          parsed.recommendation || "good_match"
+        );
+
         return {
           jobId: job.id,
           profileId: profile.id,
-          score: parsed.score || 80,
-          recommendation: parsed.recommendation || "good_match",
+          score,
+          recommendation,
           summary: parsed.summary || "",
           strengths: parsed.strengths || [],
           missingSkills: parsed.missingSkills || [],
@@ -113,11 +146,18 @@ Return strict JSON:
     try {
       const parsed = await callGeminiJson<any>(prompt, geminiKey);
       if (parsed) {
+        const { score, recommendation } = enforceConsistency(
+          parsed.score || 70,
+          parsed.missingSkills || [],
+          parsed.experienceGaps || [],
+          parsed.recommendation || "good_match"
+        );
+
         return {
           jobId: job.id,
           profileId: profile.id,
-          score: parsed.score || 80,
-          recommendation: parsed.recommendation || "good_match",
+          score,
+          recommendation,
           summary: parsed.summary || "",
           strengths: parsed.strengths || [],
           missingSkills: parsed.missingSkills || [],
@@ -209,21 +249,52 @@ Return strict JSON:
       `Профіль кандидата (${profile.title}) не відповідає основному напрямку позиції (${job.title}).`
     ];
   } else {
+    // 1. Core skill overlap (up to 60 points)
     const matchRatio = matched.length / Math.max(matched.length + missing.length, 1);
-    calculatedScore = Math.min(
-      Math.max(Math.round(matchRatio * 100 + (profile.yearsOfExperience >= 5 ? 15 : 5)), 45),
-      96
-    );
+    const skillScore = Math.round(matchRatio * 60);
+
+    // 2. Seniority & track record (up to 20 points)
+    const seniorityScore = profile.yearsOfExperience >= 7 ? 20 : profile.yearsOfExperience >= 4 ? 15 : 10;
+
+    // 3. Domain alignment (up to 15 points)
+    const domainScore = matchedCoreStacks.length > 0 ? 15 : 5;
+
+    const rawScore = skillScore + seniorityScore + domainScore;
+
+    // 4. Critical Penalty for missing architectural/cloud requirements:
+    const criticalKeywords = ["kubernetes", "microservices", "aws", "docker", "system design", "ci/cd"];
+    const criticalMissing = missing.filter((kw) => criticalKeywords.includes(kw.toLowerCase()));
+    const otherMissing = missing.filter((kw) => !criticalKeywords.includes(kw.toLowerCase()));
+
+    // Each critical missing requirement penalizes -10 points, non-critical -4 points
+    const penalty = criticalMissing.length * 10 + otherMissing.length * 4;
+
+    calculatedScore = Math.max(30, Math.min(95, rawScore - penalty));
+
+    // Consistency clamp: If there are 2+ critical gaps or 4+ total missing skills, score CANNOT be >= 85
+    if (criticalMissing.length >= 2 || missing.length >= 4) {
+      calculatedScore = Math.min(calculatedScore, 74);
+    } else if (criticalMissing.length === 1) {
+      calculatedScore = Math.min(calculatedScore, 82);
+    }
 
     if (calculatedScore >= 85) recommendation = "strong_match";
     else if (calculatedScore >= 70) recommendation = "good_match";
     else if (calculatedScore >= 50) recommendation = "partial_match";
     else recommendation = "low_match";
 
-    summaryText = `Кандидат має гарний профіль для посади ${job.title}. Основний стек збігається, проте варто підкреслити релевантні проєкти під вимоги ${job.company}.`;
+    summaryText = calculatedScore >= 85
+      ? `Висока сумісність: кандидат володіє ключовим стеком (${matched.slice(0, 3).join(", ")}) та відповідає основним інженерним вимогам для ${job.title}.`
+      : calculatedScore >= 70
+      ? `Хороша сумісність з окремими зонами росту: основний стек збігається, проте у вакансії зазначені вимоги (${missing.slice(0, 2).join(", ")}), відсутні у поточному резюме.`
+      : `Помірна сумісність: виявлено помітні розриви у необхідних технологіях (${missing.slice(0, 3).join(", ")}), що може стати ризиком на первинному скринінгу.`;
+
     experienceGaps =
       missing.length > 0
-        ? [`Вимоги передбачають знання: ${missing.slice(0, 2).join(", ")}. У CV це прямо не вказано.`]
+        ? [
+            `Вимоги передбачають знання: ${missing.slice(0, 3).join(", ")}. У CV це прямо не підтверджено.`,
+            criticalMissing.length > 0 ? `Критичний ризик для скринінгу: відсутність ${criticalMissing.join(", ")}.` : undefined,
+          ].filter(Boolean) as string[]
         : ["Критичних розривів у досвіді не виявлено."];
   }
 
