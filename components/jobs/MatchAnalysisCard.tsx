@@ -595,7 +595,7 @@ export function MatchAnalysisCard({
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="font-semibold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                {isEn ? "DOU / Djinni Benchmark" : "Бенчмарк DOU / Djinni"}
+                {t.salaryEstimateBadge}
               </span>
             </div>
           </div>
@@ -605,30 +605,13 @@ export function MatchAnalysisCard({
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Market Range Card */}
-            <div className="bg-white rounded-xl p-4 border border-emerald-100 shadow-2xs space-y-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                {t.marketBracketLabel}
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-900 tabular-nums">
-                  ${salaryInsights.estimatedMin.toLocaleString()} – ${salaryInsights.estimatedMax.toLocaleString()}
-                </span>
-                <span className="text-xs font-semibold text-slate-500">{t.perMonth}</span>
-              </div>
-              <div className="text-xs text-slate-600 pt-1">
-                <strong>{t.marketMedianLabel}</strong>{" "}
-                <span className="text-emerald-700 font-bold">${salaryInsights.median.toLocaleString()}</span> {t.perMonth}
-              </div>
-            </div>
-
-            {/* Vacancy Stated vs Calculated */}
+            {/* Vacancy Stated vs Calculated (Priority to Employer Offer) */}
             <div className="bg-white rounded-xl p-4 border border-emerald-100 shadow-2xs space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                 {t.statedSalary}
               </span>
               {job.salary ? (
-                <div className="text-lg font-bold text-emerald-700">
+                <div className="text-xl font-extrabold text-emerald-700">
                   {job.salary}
                 </div>
               ) : (
@@ -645,7 +628,29 @@ export function MatchAnalysisCard({
                 ))}
               </div>
             </div>
+
+            {/* Market Range Card */}
+            <div className="bg-white rounded-xl p-4 border border-emerald-100 shadow-2xs space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                {t.marketBracketLabel}
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-900 tabular-nums">
+                  ${salaryInsights.estimatedMin.toLocaleString()} – ${salaryInsights.estimatedMax.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500">{t.perMonth}</span>
+              </div>
+              <div className="text-xs text-slate-600 pt-1">
+                <strong>{t.marketMedianLabel}</strong>{" "}
+                <span className="text-emerald-700 font-bold">${salaryInsights.median.toLocaleString()}</span> {t.perMonth}
+              </div>
+            </div>
           </div>
+
+          {/* Transparent source disclaimer */}
+          <p className="text-[11px] text-slate-400 italic">
+            💡 {t.salaryDisclaimer}
+          </p>
 
           {/* Toggle Negotiation Scripts */}
           <div className="pt-2">
