@@ -21,7 +21,7 @@ import {
   CoverLetterResult
 } from "@/types";
 import { analyzeJobMatch } from "@/lib/ai/matcher";
-import { smoothScrollTo, scrollIntoCenter } from "@/lib/utils";
+import { smoothScrollTo, scrollIntoCenter, getJobIdentityKey } from "@/lib/utils";
 import { translations, Language } from "@/lib/translations";
 import { 
   Sparkles, 
@@ -74,7 +74,15 @@ export default function HomePage() {
       if (savedAnalyses) {
         const parsed = JSON.parse(savedAnalyses);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setCurrentAnalyses(parsed);
+          const seenKeys = new Set<string>();
+          const dedupedAnalyses = parsed.filter((item: any) => {
+            if (!item || !item.job) return false;
+            const key = getJobIdentityKey(item.job);
+            if (seenKeys.has(key)) return false;
+            seenKeys.add(key);
+            return true;
+          });
+          setCurrentAnalyses(dedupedAnalyses);
         }
       }
 
@@ -82,7 +90,15 @@ export default function HomePage() {
       if (savedApps) {
         const parsed = JSON.parse(savedApps);
         if (Array.isArray(parsed)) {
-          setApplications(parsed);
+          const seenAppKeys = new Set<string>();
+          const dedupedApps = parsed.filter((app: any) => {
+            if (!app || !app.job) return false;
+            const key = getJobIdentityKey(app.job);
+            if (seenAppKeys.has(key)) return false;
+            seenAppKeys.add(key);
+            return true;
+          });
+          setApplications(dedupedApps);
         }
       }
     } catch (e) {
@@ -187,10 +203,24 @@ export default function HomePage() {
     setIsAnalyzing(true);
     try {
       const analysis = await analyzeJobMatch(activeCandidate, job);
-      setCurrentAnalyses((prev) => [{ job, analysis }, ...prev]);
+      const targetKey = getJobIdentityKey(job);
+      let targetJobId = job.id;
+
+      setCurrentAnalyses((prev) => {
+        const existingIndex = prev.findIndex((item) => getJobIdentityKey(item.job) === targetKey);
+        if (existingIndex >= 0) {
+          // Re-use existing job id to maintain stable UI anchors
+          targetJobId = prev[existingIndex].job.id;
+          const updatedJob = { ...job, id: targetJobId };
+          const updatedItem = { job: updatedJob, analysis };
+          return [updatedItem, ...prev.filter((_, idx) => idx !== existingIndex)];
+        }
+        return [{ job, analysis }, ...prev];
+      });
+
       setActiveTab("analyze");
       setTimeout(() => {
-        const el = document.getElementById(`job-analysis-${job.id}`) || document.getElementById("analyzed-results-section");
+        const el = document.getElementById(`job-analysis-${targetJobId}`) || document.getElementById("analyzed-results-section");
         if (el) {
           scrollIntoCenter(el);
         }
@@ -210,13 +240,15 @@ export default function HomePage() {
     tailoredCV?: TailoredCVResult | null,
     coverLetter?: CoverLetterResult | null
   ) => {
-    const existingIndex = applications.findIndex((app) => app.job.id === job.id);
+    const targetKey = getJobIdentityKey(job);
+    const existingIndex = applications.findIndex((app) => getJobIdentityKey(app.job) === targetKey);
     if (existingIndex >= 0) {
       setApplications((prev) =>
         prev.map((app, idx) =>
           idx === existingIndex
             ? {
                 ...app,
+                job: { ...job, id: app.job.id },
                 matchScore: score,
                 tailoredCV: tailoredCV || app.tailoredCV,
                 coverLetter: coverLetter || app.coverLetter,
